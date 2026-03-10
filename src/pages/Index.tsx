@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { SutraKnot } from '@/components/SutraKnot';
 
@@ -9,7 +9,6 @@ const Index = () => {
 
   const handleRequest = (e: React.FormEvent) => {
     e.preventDefault();
-    // In this ritual, any intent allows entry
     if (accessCode.length > 2) {
       navigate('/archive');
     }
@@ -17,20 +16,6 @@ const Index = () => {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-[#F5F2ED] overflow-hidden">
-      {/* Background Image - Cinematic Texture */}
-      <motion.div 
-        initial={{ opacity: 0, scale: 1.1 }}
-        animate={{ opacity: 0.4, scale: 1 }}
-        transition={{ duration: 3, ease: "easeOut" }}
-        className="absolute inset-0 z-0"
-      >
-        <img 
-          src="https://images.unsplash.com/photo-1590739225287-bd2ba5198922?auto=format&fit=crop&q=80&w=2000" 
-          alt="Khadi Texture" 
-          className="w-full h-full object-cover grayscale"
-        />
-      </motion.div>
-
       <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-2xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

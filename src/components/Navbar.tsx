@@ -51,7 +51,7 @@ const Navbar = () => {
 
         {/* Center Logo (Always Centered) */}
         <div className="absolute left-1/2 -translate-x-1/2">
-          <Link to="/" className="text-2xl md:text-3xl serif italic tracking-tight lowercase">
+          <Link to="/" className="text-xl md:text-2xl serif uppercase tracking-[0.4em] font-light">
             Anubhuti
           </Link>
         </div>
@@ -105,9 +105,9 @@ const Navbar = () => {
               <X size={32} strokeWidth={1} />
             </button>
 
-            {/* Arch Logo Placeholder (from image) */}
+            {/* Logo in Mobile Menu */}
             <div className="absolute top-12 left-1/2 -translate-x-1/2">
-              <div className="w-12 h-16 bg-black rounded-t-full" />
+              <span className="text-lg serif uppercase tracking-[0.4em] font-light">Anubhuti</span>
             </div>
 
             {/* Navigation Links */}
