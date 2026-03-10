@@ -15,18 +15,32 @@ const Index = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center bg-[#F5F2ED] overflow-hidden">
+    <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-black">
+      {/* Video Background */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover z-0 opacity-60"
+      >
+        <source src="/Diya_Burning_Video_Generated.mp4" type="video/mp4" />
+      </video>
+
+      {/* Subtle Overlay for Depth */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 z-[1]" />
+
       <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-2xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 1.5 }}
         >
-          <SutraKnot className="w-12 h-12 mb-12 text-primary/40" />
-          <h1 className="text-4xl md:text-5xl font-light mb-6 tracking-tight serif text-[#2C2C2C]">
+          <SutraKnot className="w-12 h-12 mb-12 text-white/40" />
+          <h1 className="text-4xl md:text-5xl font-light mb-6 tracking-tight serif text-white">
             A private archive of seven spiritual states.
           </h1>
-          <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground mb-16">
+          <p className="text-sm uppercase tracking-[0.3em] text-white/60 mb-16">
             For those who seek the resonance of heritage.
           </p>
         </motion.div>
@@ -44,22 +58,22 @@ const Index = () => {
               placeholder="Request Access"
               value={accessCode}
               onChange={(e) => setAccessCode(e.target.value)}
-              className="w-full bg-transparent border-b border-primary/20 py-4 text-center focus:outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/50 placeholder:uppercase placeholder:tracking-widest text-sm"
+              className="w-full bg-transparent border-b border-white/20 py-4 text-center focus:outline-none focus:border-white transition-colors placeholder:text-white/30 placeholder:uppercase placeholder:tracking-widest text-sm text-white"
             />
-            <div className="absolute bottom-0 left-0 w-0 h-[1px] bg-primary transition-all duration-700 group-focus-within:w-full" />
+            <div className="absolute bottom-0 left-0 w-0 h-[1px] bg-white transition-all duration-700 group-focus-within:w-full" />
           </div>
           
           <button 
             type="submit"
-            className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground hover:text-primary transition-colors"
+            className="text-[10px] uppercase tracking-[0.4em] text-white/60 hover:text-white transition-colors"
           >
             Enter the Silence
           </button>
         </motion.form>
       </div>
 
-      <div className="absolute bottom-12 left-12 hidden md:block">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground/40 vertical-text">
+      <div className="absolute bottom-12 left-12 hidden md:block z-10">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-white/40 vertical-text">
           Aishee & Lasya Rituals
         </p>
       </div>
