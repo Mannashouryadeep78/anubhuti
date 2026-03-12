@@ -48,9 +48,9 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
         })
       });
 
-      // 2. Save to Supabase (if configured)
-      if (import.meta.env.VITE_SUPABASE_URL) {
-        await supabase.from('access_requests').insert([
+      // 2. Save to Supabase (if configured and available)
+      if (supabase) {
+        const { error } = await supabase.from('access_requests').insert([
           { 
             full_name: formData.name, 
             email: formData.email, 
@@ -58,6 +58,7 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
             status: 'pending'
           }
         ]);
+        if (error) console.warn("Supabase save error:", error.message);
       }
 
       if (emailResponse.ok) {
