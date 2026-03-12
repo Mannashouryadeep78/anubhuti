@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Lock, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import AdminLoginModal from './AdminLoginModal';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,13 +41,14 @@ const Navbar = () => {
           >
             Services
           </Link>
-          <Link 
-            to="/" 
-            className="flex items-center space-x-2 text-[11px] font-bold tracking-[0.2em] hover:text-gray-400 transition-colors uppercase"
-          >
-            <span>Behind the Door Nº9</span>
-            <Lock size={12} className="mb-0.5" />
-          </Link>
+          <AdminLoginModal 
+            trigger={
+              <button className="flex items-center space-x-2 text-[11px] font-bold tracking-[0.2em] hover:text-gray-400 transition-colors uppercase">
+                <span>Admin Login</span>
+                <Lock size={12} className="mb-0.5" />
+              </button>
+            }
+          />
         </div>
 
         {/* Center Logo (Always Centered) */}
@@ -118,9 +120,13 @@ const Navbar = () => {
               <Link to="/archive" className="text-4xl md:text-5xl serif uppercase tracking-tight hover:opacity-60 transition-opacity">
                 Services
               </Link>
-              <Link to="/" className="text-4xl md:text-5xl serif uppercase tracking-tight hover:opacity-60 transition-opacity">
-                Behind the Door...
-              </Link>
+              <AdminLoginModal 
+                trigger={
+                  <button className="text-4xl md:text-5xl serif uppercase tracking-tight hover:opacity-60 transition-opacity">
+                    Admin Login
+                  </button>
+                }
+              />
             </div>
 
             {/* Social Links Footer */}
