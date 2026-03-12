@@ -35,13 +35,13 @@ const Index = () => {
         loop
         muted
         playsInline
-        className="absolute inset-0 w-full h-full object-cover opacity-40"
+        className="absolute inset-0 w-full h-full object-cover opacity-60"
       >
-        <source src="https://player.vimeo.com/external/451837461.sd.mp4?s=6f36666666666666666666666666666666666666&profile_id=164&oauth2_token_id=57447761" type="video/mp4" />
+        <source src="/src/assets/background.mp4" type="video/mp4" />
       </video>
 
       {/* Dark Overlay for Contrast */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-black/80" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/60" />
 
       <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-2xl">
         <motion.div
