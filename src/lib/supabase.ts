@@ -1,9 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Using the credentials provided to ensure the connection works immediately
+const supabaseUrl = 'https://svjnrkzeqgqxcrjrrmcg.supabase.co';
+const supabaseAnonKey = 'sb_publishable_FHfeWy3cva8bq8Pc7ca5KQ_rBu9mYeb';
 
-// Only initialize if we have the required credentials to avoid crashing the app
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey) 
-  : null;
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
