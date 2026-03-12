@@ -11,8 +11,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, X } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface RequestAccessModalProps {
   trigger: React.ReactNode;
@@ -21,15 +23,54 @@ interface RequestAccessModalProps {
 const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+
+    try {
+      // 1. Send Email Notification via FormSubmit (Direct to your email)
+      const emailResponse = await fetch("https://formsubmit.co/ajax/mannashouryadeep78@gmail.com", {
+        method: "POST",
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          ...formData,
+          _subject: "New Private Access Request - Anubhuti",
+          _template: "table"
+        })
+      });
+
+      // 2. Save to Supabase (if configured)
+      if (import.meta.env.VITE_SUPABASE_URL) {
+        await supabase.from('access_requests').insert([
+          { 
+            full_name: formData.name, 
+            email: formData.email, 
+            phone: formData.phone,
+            status: 'pending'
+          }
+        ]);
+      }
+
+      if (emailResponse.ok) {
+        setIsSubmitted(true);
+      } else {
+        throw new Error("Failed to send request");
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      toast.error("There was an issue sending your request. Please try again.");
+    } finally {
       setIsLoading(false);
-      setIsSubmitted(true);
-    }, 1500);
+    }
   };
 
   return (
@@ -62,6 +103,8 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
                   <Input 
                     id="name" 
                     required
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
                     className="bg-transparent border-white/10 focus:border-[#C5A059] transition-colors rounded-none h-12 text-sm"
                     placeholder="Aishee Sharma"
                   />
@@ -72,6 +115,8 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
                     id="email" 
                     type="email" 
                     required
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
                     className="bg-transparent border-white/10 focus:border-[#C5A059] transition-colors rounded-none h-12 text-sm"
                     placeholder="aishee@example.com"
                   />
@@ -82,6 +127,8 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
                     id="phone" 
                     type="tel" 
                     required
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
                     className="bg-transparent border-white/10 focus:border-[#C5A059] transition-colors rounded-none h-12 text-sm"
                     placeholder="+91 00000 00000"
                   />
