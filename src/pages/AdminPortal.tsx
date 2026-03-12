@@ -11,8 +11,7 @@ const AdminPortal = () => {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();
-  const autoApproveId = searchParams.get('approve');
-
+  
   const fetchRequests = async () => {
     if (!supabase) return;
     const { data, error } = await supabase
@@ -31,23 +30,39 @@ const AdminPortal = () => {
 
   const handleApprove = async (request: any) => {
     if (!supabase) return;
-    const toastId = toast.loading(`Approving ${request.full_name}...`);
+    const toastId = toast.loading(`Processing approval for ${request.full_name}...`);
 
     try {
-      // 1. Generate 6-digit OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 3); // 3 days from now
+      // 1. Check if a valid, non-expired code already exists for this email
+      const { data: existingCode } = await supabase
+        .from('access_codes')
+        .select('code')
+        .eq('email', request.email)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-      // 2. Save OTP to access_codes table
-      const { error: codeError } = await supabase.from('access_codes').insert([
-        { 
-          email: request.email, 
-          code: otp, 
-          expires_at: expiresAt.toISOString() 
-        }
-      ]);
-      if (codeError) throw codeError;
+      let otp: string;
+
+      if (existingCode) {
+        // Reuse the existing valid code
+        otp = existingCode.code;
+      } else {
+        // 2. Generate new 6-digit OTP if none exists
+        otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 3); // 3 days from now
+
+        const { error: codeError } = await supabase.from('access_codes').insert([
+          { 
+            email: request.email, 
+            code: otp, 
+            expires_at: expiresAt.toISOString() 
+          }
+        ]);
+        if (codeError) throw codeError;
+      }
 
       // 3. Update request status
       const { error: updateError } = await supabase
@@ -62,12 +77,12 @@ const AdminPortal = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           _subject: "Your Private Access Code - Anubhuti",
-          message: `Your request for access to Anubhuti has been approved.\n\nYour private passcode is: ${otp}\n\nThis code will expire in 72 hours (3 days).`,
+          message: `Your request for access to Anubhuti has been approved.\n\nYour private passcode is: ${otp}\n\nThis code is valid for 72 hours from its original generation.`,
           _template: "box"
         })
       });
 
-      toast.success("Approved and OTP sent!", { id: toastId });
+      toast.success(existingCode ? "Existing code resent!" : "Approved and new OTP sent!", { id: toastId });
       fetchRequests();
     } catch (error) {
       console.error(error);
