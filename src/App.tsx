@@ -10,6 +10,7 @@ import StateDetail from "./pages/StateDetail";
 import Ledger from "./pages/Ledger";
 import Reserve from "./pages/Reserve";
 import AdminPortal from "./pages/AdminPortal";
+import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
               <Route path="/state/:id" element={<StateDetail />} />
               <Route path="/ledger" element={<Ledger />} />
               <Route path="/reserve" element={<Reserve />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/portal" element={<AdminPortal />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

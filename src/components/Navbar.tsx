@@ -4,11 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Lock, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import AdminLoginModal from './AdminLoginModal';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+
+  // Determine if the user has "entered" the archive
+  const hasEntered = location.pathname !== '/' && location.pathname !== '/admin/login';
 
   // Close menu when route changes
   useEffect(() => {
@@ -35,20 +37,27 @@ const Navbar = () => {
           >
             About
           </Link>
-          <Link 
-            to="/archive" 
-            className="text-[11px] font-bold tracking-[0.2em] hover:text-gray-400 transition-colors uppercase"
-          >
-            Services
-          </Link>
-          <AdminLoginModal 
-            trigger={
-              <button className="flex items-center space-x-2 text-[11px] font-bold tracking-[0.2em] hover:text-gray-400 transition-colors uppercase">
-                <span>Admin Login</span>
-                <Lock size={12} className="mb-0.5" />
-              </button>
-            }
-          />
+          
+          {/* Services only shows after passcode entry */}
+          {hasEntered && (
+            <Link 
+              to="/archive" 
+              className="text-[11px] font-bold tracking-[0.2em] hover:text-gray-400 transition-colors uppercase"
+            >
+              Services
+            </Link>
+          )}
+
+          {/* Admin Login only shows on the entry page */}
+          {!hasEntered && (
+            <Link 
+              to="/admin/login" 
+              className="flex items-center space-x-2 text-[11px] font-bold tracking-[0.2em] hover:text-gray-400 transition-colors uppercase"
+            >
+              <span>Admin Login</span>
+              <Lock size={12} className="mb-0.5" />
+            </Link>
+          )}
         </div>
 
         {/* Center Logo (Always Centered) */}
@@ -117,16 +126,18 @@ const Navbar = () => {
               <Link to="/ledger" className="text-4xl md:text-5xl serif uppercase tracking-tight hover:opacity-60 transition-opacity">
                 About
               </Link>
-              <Link to="/archive" className="text-4xl md:text-5xl serif uppercase tracking-tight hover:opacity-60 transition-opacity">
-                Services
-              </Link>
-              <AdminLoginModal 
-                trigger={
-                  <button className="text-4xl md:text-5xl serif uppercase tracking-tight hover:opacity-60 transition-opacity">
-                    Admin Login
-                  </button>
-                }
-              />
+              
+              {hasEntered && (
+                <Link to="/archive" className="text-4xl md:text-5xl serif uppercase tracking-tight hover:opacity-60 transition-opacity">
+                  Services
+                </Link>
+              )}
+
+              {!hasEntered && (
+                <Link to="/admin/login" className="text-4xl md:text-5xl serif uppercase tracking-tight hover:opacity-60 transition-opacity">
+                  Admin Login
+                </Link>
+              )}
             </div>
 
             {/* Social Links Footer */}
