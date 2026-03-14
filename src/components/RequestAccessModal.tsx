@@ -36,38 +36,73 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
     try {
       let requestId = crypto.randomUUID();
 
-      // 1. Save to Supabase first to get a record
-      if (supabase) {
-        const { error } = await supabase.from('access_requests').insert([
+      // 1. Check if a valid, non-expired code already exists for this email
+      const { data: existingCode } = await supabase
+        .from('access_codes')
+        .select('code')
+        .eq('email', formData.email)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (existingCode) {
+        // AUTO-APPROVE: Send existing code to user immediately
+        await fetch(`https://formsubmit.co/ajax/${formData.email}`, {
+          method: "POST",
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            _subject: "Your Private Access Code - Anubhuti",
+            message: `Welcome back. Your existing private passcode is still valid.\n\nPasscode: ${existingCode.code}\n\nThis code remains valid for its original 72-hour window.`,
+            _template: "box"
+          })
+        });
+
+        // Log the request as auto-approved
+        await supabase.from('access_requests').insert([
           { 
             id: requestId,
             full_name: formData.name, 
             email: formData.email, 
             phone: formData.phone,
-            status: 'pending'
+            status: 'approved'
           }
         ]);
-        if (error) throw error;
-      }
 
-      // 2. Send Email Notification to Admin with Approval Link
-      const approvalLink = `${window.location.origin}/admin/portal?approve=${requestId}`;
-      
-      await fetch("https://formsubmit.co/ajax/mannashouryadeep78@gmail.com", {
-        method: "POST",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          _subject: "ACTION REQUIRED: New Access Request",
-          "Approval Link": approvalLink,
-          _message: `A new request has been received. Click the link below to approve and send the OTP.\n\n${approvalLink}`
-        })
-      });
+        toast.success("Welcome back. Your valid passcode has been resent to your email.");
+      } else {
+        // NORMAL FLOW: Save request and notify admin
+        if (supabase) {
+          const { error } = await supabase.from('access_requests').insert([
+            { 
+              id: requestId,
+              full_name: formData.name, 
+              email: formData.email, 
+              phone: formData.phone,
+              status: 'pending'
+            }
+          ]);
+          if (error) throw error;
+        }
+
+        const approvalLink = `${window.location.origin}/admin/portal?approve=${requestId}`;
+        
+        await fetch("https://formsubmit.co/ajax/mannashouryadeep78@gmail.com", {
+          method: "POST",
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...formData,
+            _subject: "ACTION REQUIRED: New Access Request",
+            "Approval Link": approvalLink,
+            _message: `A new request has been received. Click the link below to approve and send the OTP.\n\n${approvalLink}`
+          })
+        });
+      }
 
       setIsSubmitted(true);
     } catch (error) {
       console.error("Submission error:", error);
-      toast.error("There was an issue sending your request.");
+      toast.error("There was an issue processing your request.");
     } finally {
       setIsLoading(false);
     }

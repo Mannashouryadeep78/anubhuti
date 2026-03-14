@@ -69,7 +69,7 @@ const AdminLogin = () => {
               value={formData.email} 
               onChange={(e) => setFormData({...formData, email: e.target.value})} 
               className="w-full bg-transparent border-b border-white/10 py-4 focus:outline-none focus:border-[#C5A059] transition-all text-sm text-white"
-              placeholder="mannashouryadeep78@gmail.com"
+              placeholder="Enter your email"
             />
           </div>
           <div className="space-y-2">
@@ -80,6 +80,7 @@ const AdminLogin = () => {
               value={formData.password} 
               onChange={(e) => setFormData({...formData, password: e.target.value})} 
               className="w-full bg-transparent border-b border-white/10 py-4 focus:outline-none focus:border-[#C5A059] transition-all text-sm text-white"
+              placeholder="Enter your password"
             />
           </div>
           <button 
