@@ -69,25 +69,27 @@ const Archive = () => {
                 transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
                 className={`order-1 ${index % 2 === 0 ? 'lg:order-1' : 'lg:order-2'}`}
               >
-                <Link to={`/state/${state.id}`} className="block group relative overflow-hidden aspect-[3/4] bg-black">
+                <Link to={`/state/${state.id}`} className="block group relative overflow-hidden bg-black shadow-2xl">
                   {state.video ? (
                     <video 
                       autoPlay 
                       loop 
                       muted 
                       playsInline 
-                      className="w-full h-full object-contain grayscale group-hover:grayscale-0 transition-all duration-1000"
+                      className="w-full h-auto grayscale group-hover:grayscale-0 transition-all duration-1000 block"
                     >
                       <source src={state.video} type="video/mp4" />
                     </video>
                   ) : (
-                    <img 
-                      src={state.img} 
-                      alt={state.name} 
-                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000 scale-105 group-hover:scale-100"
-                    />
+                    <div className="aspect-[3/4]">
+                      <img 
+                        src={state.img} 
+                        alt={state.name} 
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000 scale-105 group-hover:scale-100"
+                      />
+                    </div>
                   )}
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-700" />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-700 pointer-events-none" />
                 </Link>
               </motion.div>
 
