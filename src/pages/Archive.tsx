@@ -10,7 +10,7 @@ const STATES = [
   { id: 'mauna', name: 'Mauna', meaning: 'The great silence', video: '/src/assets/mouna.mp4', img: 'https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&q=80&w=800' },
   { id: 'nirmalya', name: 'Nirmalya', meaning: 'Purity', video: '/src/assets/nirmalaya.mp4', img: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=800' },
   { id: 'prarthana', name: 'Prarthana', meaning: 'Prayer', img: 'https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&q=80&w=800' },
-  { id: 'chinmaya', name: 'Chinmaya', meaning: 'Pure consciousness', img: 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&q=80&w=800' },
+  { id: 'chinmaya', name: 'Chinmaya', meaning: 'Pure consciousness', video: '/src/assets/chinmaya.mp4', img: 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&q=80&w=800' },
   { id: 'ananda', name: 'Ananda', meaning: 'Bliss', img: 'https://images.unsplash.com/photo-1576188973526-0e5d742240ad?auto=format&fit=crop&q=80&w=800' },
   { id: 'mukti', name: 'Mukti', meaning: 'Liberation', img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&q=80&w=800' },
 ];

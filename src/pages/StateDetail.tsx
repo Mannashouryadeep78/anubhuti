@@ -42,6 +42,7 @@ const STATE_DATA: Record<string, any> = {
     verse: 'The clarity of pure consciousness.',
     blueprint: 'Sheer organza with intricate white-on-white embroidery.',
     ritual: "To be worn with Lasya's Lotus Seed Essence.",
+    video: '/src/assets/chinmaya.mp4',
     img: 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&q=80&w=1200'
   },
   ananda: {
