@@ -6,7 +6,7 @@ import { SutraKnot } from '@/components/SutraKnot';
 import { Link } from 'react-router-dom';
 
 const STATES = [
-  { id: 'sthira', name: 'Sthira', meaning: 'Grounded stability', img: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=800' },
+  { id: 'sthira', name: 'Sthira', meaning: 'Grounded stability', video: '/src/assets/sthira.mp4', img: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=800' },
   { id: 'mauna', name: 'Mauna', meaning: 'The great silence', img: 'https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&q=80&w=800' },
   { id: 'nirmalya', name: 'Nirmalya', meaning: 'Purity', img: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=800' },
   { id: 'prarthana', name: 'Prarthana', meaning: 'Prayer', img: 'https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&q=80&w=800' },
@@ -62,12 +62,24 @@ const Archive = () => {
               className="group"
             >
               <Link to={`/state/${state.id}`} className="block space-y-6">
-                <div className="aspect-[3/4] overflow-hidden bg-muted">
-                  <img 
-                    src={state.img} 
-                    alt={state.name} 
-                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000 scale-105 group-hover:scale-100"
-                  />
+                <div className="aspect-[3/4] overflow-hidden bg-muted relative">
+                  {state.video ? (
+                    <video 
+                      autoPlay 
+                      loop 
+                      muted 
+                      playsInline 
+                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000"
+                    >
+                      <source src={state.video} type="video/mp4" />
+                    </video>
+                  ) : (
+                    <img 
+                      src={state.img} 
+                      alt={state.name} 
+                      className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000 scale-105 group-hover:scale-100"
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
