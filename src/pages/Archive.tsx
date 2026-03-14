@@ -25,7 +25,7 @@ const Archive = () => {
           loop 
           muted 
           playsInline 
-          className="absolute inset-0 w-full h-full object-cover opacity-40 grayscale"
+          className="absolute inset-0 w-full h-full object-cover opacity-60"
         >
           <source src="/src/assets/sutra-knot.mp4" type="video/mp4" />
         </video>
