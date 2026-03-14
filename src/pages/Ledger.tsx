@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -34,12 +36,6 @@ const Ledger = () => {
             Lasya skincare formulations are presented like alchemical rituals. We do not manufacture; we manifest through the intersection of fiber and frequency.
           </p>
         </section>
-
-        <footer className="text-center pt-24">
-          <Link to="/archive" className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground hover:text-primary">
-            Return to Archive
-          </Link>
-        </footer>
       </div>
     </div>
   );
