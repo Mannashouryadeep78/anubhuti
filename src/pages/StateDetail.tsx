@@ -80,7 +80,7 @@ const StateDetail = () => {
               loop 
               muted 
               playsInline 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             >
               <source src={state.video} type="video/mp4" />
             </video>

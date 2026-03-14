@@ -69,14 +69,14 @@ const Archive = () => {
                 transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
                 className={`order-1 ${index % 2 === 0 ? 'lg:order-1' : 'lg:order-2'}`}
               >
-                <Link to={`/state/${state.id}`} className="block group relative overflow-hidden aspect-[3/4] bg-muted">
+                <Link to={`/state/${state.id}`} className="block group relative overflow-hidden aspect-[3/4] bg-black">
                   {state.video ? (
                     <video 
                       autoPlay 
                       loop 
                       muted 
                       playsInline 
-                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000"
+                      className="w-full h-full object-contain grayscale group-hover:grayscale-0 transition-all duration-1000"
                     >
                       <source src={state.video} type="video/mp4" />
                     </video>
