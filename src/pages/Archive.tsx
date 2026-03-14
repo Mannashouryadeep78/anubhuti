@@ -67,21 +67,24 @@ const Archive = () => {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                className={`order-1 ${index % 2 === 0 ? 'lg:order-1' : 'lg:order-2'}`}
+                className={`order-1 flex justify-center ${index % 2 === 0 ? 'lg:order-1' : 'lg:order-2'}`}
               >
-                <Link to={`/state/${state.id}`} className="block group relative overflow-hidden bg-black shadow-2xl">
+                <Link 
+                  to={`/state/${state.id}`} 
+                  className="block w-fit group relative overflow-hidden shadow-2xl"
+                >
                   {state.video ? (
                     <video 
                       autoPlay 
                       loop 
                       muted 
                       playsInline 
-                      className="w-full h-auto grayscale group-hover:grayscale-0 transition-all duration-1000 block"
+                      className="max-w-full h-auto grayscale group-hover:grayscale-0 transition-all duration-1000 block"
                     >
                       <source src={state.video} type="video/mp4" />
                     </video>
                   ) : (
-                    <div className="aspect-[3/4]">
+                    <div className="aspect-[3/4] w-full max-w-md">
                       <img 
                         src={state.img} 
                         alt={state.name} 
@@ -89,7 +92,7 @@ const Archive = () => {
                       />
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-700 pointer-events-none" />
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-700 pointer-events-none" />
                 </Link>
               </motion.div>
 
