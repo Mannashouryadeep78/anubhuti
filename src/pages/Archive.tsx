@@ -19,7 +19,7 @@ const Archive = () => {
   return (
     <div className="min-h-screen bg-[#F5F2ED]">
       {/* Sutra Knot Hero Section */}
-      <section className="relative h-[70vh] flex items-center justify-center overflow-hidden bg-black">
+      <section className="relative h-screen flex items-center justify-center overflow-hidden bg-black">
         <video 
           autoPlay 
           loop 
@@ -42,27 +42,34 @@ const Archive = () => {
           <p className="text-2xl md:text-3xl serif italic text-white leading-relaxed">
             "This is a powerful metaphor for Connection. The knot isn't just a closure; it’s a commitment."
           </p>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2, duration: 1 }}
+            className="mt-24"
+          >
+            <p className="text-[10px] uppercase tracking-[0.4em] text-white/40 animate-bounce">Scroll to Begin the Journey</p>
+          </motion.div>
         </motion.div>
       </section>
 
-      <div className="py-24 px-6 md:px-12">
-        <header className="max-w-7xl mx-auto mb-32 flex flex-col items-center text-center">
-          <h2 className="text-sm uppercase tracking-[0.5em] text-muted-foreground mb-4">The Archive</h2>
-          <p className="text-2xl serif italic text-primary/80">"These garments are not made. They are manifested."</p>
-        </header>
-
-        <div className="max-grid max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-24">
-          {STATES.map((state, index) => (
-            <motion.div
-              key={state.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1, duration: 1 }}
-              className="group"
-            >
-              <Link to={`/state/${state.id}`} className="block space-y-6">
-                <div className="aspect-[3/4] overflow-hidden bg-muted relative">
+      {/* Sequential Stages Flow */}
+      <div className="relative">
+        {STATES.map((state, index) => (
+          <section 
+            key={state.id} 
+            className="min-h-screen flex flex-col items-center justify-center py-32 px-6 md:px-12 relative overflow-hidden"
+          >
+            <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+              {/* Visual Side */}
+              <motion.div
+                initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+                className={`order-1 ${index % 2 === 0 ? 'lg:order-1' : 'lg:order-2'}`}
+              >
+                <Link to={`/state/${state.id}`} className="block group relative overflow-hidden aspect-[3/4] bg-muted">
                   {state.video ? (
                     <video 
                       autoPlay 
@@ -77,28 +84,56 @@ const Archive = () => {
                     <img 
                       src={state.img} 
                       alt={state.name} 
-                      className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000 scale-105 group-hover:scale-100"
+                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000 scale-105 group-hover:scale-100"
                     />
                   )}
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xl serif tracking-wide">{state.name}</h3>
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground">0{index + 1}</span>
-                  </div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground/60">{state.meaning}</p>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-700" />
+                </Link>
+              </motion.div>
 
-        <footer className="mt-48 text-center">
-          <Link to="/ledger" className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground hover:text-primary transition-colors">
+              {/* Content Side */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ delay: 0.3, duration: 1, ease: "easeOut" }}
+                className={`space-y-8 text-center lg:text-left ${index % 2 === 0 ? 'lg:order-2' : 'lg:order-1'}`}
+              >
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase tracking-[0.5em] text-muted-foreground">Stage 0{index + 1}</span>
+                  <h3 className="text-5xl md:text-7xl serif font-light tracking-tight">{state.name}</h3>
+                </div>
+                <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground/60 max-w-xs mx-auto lg:mx-0">
+                  {state.meaning}
+                </p>
+                <div className="pt-8">
+                  <Link 
+                    to={`/state/${state.id}`} 
+                    className="inline-block text-[10px] uppercase tracking-[0.4em] border-b border-primary/20 pb-2 hover:border-primary transition-all"
+                  >
+                    Enter the State
+                  </Link>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Background Number (Subtle) */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10 opacity-[0.02] pointer-events-none">
+              <span className="text-[40vw] font-bold leading-none">0{index + 1}</span>
+            </div>
+          </section>
+        ))}
+      </div>
+
+      <footer className="py-32 text-center bg-white/30 backdrop-blur-sm">
+        <div className="max-w-xs mx-auto space-y-12">
+          <SutraKnot className="w-6 h-6 mx-auto text-primary/20" />
+          <p className="text-sm serif italic text-muted-foreground">"The journey ends where the intention begins."</p>
+          <Link to="/ledger" className="block text-[10px] uppercase tracking-[0.4em] text-muted-foreground hover:text-primary transition-colors">
             The Artisan's Ledger
           </Link>
-        </footer>
-      </div>
+        </div>
+      </footer>
     </div>
   );
 };
