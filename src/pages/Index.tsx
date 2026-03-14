@@ -20,8 +20,9 @@ const Index = () => {
     setIsVerifying(true);
 
     try {
-      // 1. Check for master override (optional, for your testing)
+      // 1. Check for master override
       if (passcode === 'anubhuti_admin') {
+        localStorage.setItem('anubhuti_access', 'true');
         navigate('/archive');
         return;
       }
@@ -36,6 +37,7 @@ const Index = () => {
           .single();
 
         if (data) {
+          localStorage.setItem('anubhuti_access', 'true');
           toast.success("Access granted. Welcome.");
           navigate('/archive');
         } else {
@@ -45,7 +47,10 @@ const Index = () => {
         }
       } else {
         // Fallback if Supabase isn't connected
-        if (passcode === '1234') navigate('/archive');
+        if (passcode === '1234') {
+          localStorage.setItem('anubhuti_access', 'true');
+          navigate('/archive');
+        }
       }
     } catch (err) {
       console.error(err);

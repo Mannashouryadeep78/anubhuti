@@ -12,6 +12,7 @@ import Reserve from "./pages/Reserve";
 import AdminPortal from "./pages/AdminPortal";
 import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -26,12 +27,27 @@ const App = () => (
           <main className="flex-grow">
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/archive" element={<Archive />} />
-              <Route path="/state/:id" element={<StateDetail />} />
               <Route path="/ledger" element={<Ledger />} />
-              <Route path="/reserve" element={<Reserve />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/portal" element={<AdminPortal />} />
+              
+              {/* Protected Routes */}
+              <Route path="/archive" element={
+                <ProtectedRoute>
+                  <Archive />
+                </ProtectedRoute>
+              } />
+              <Route path="/state/:id" element={
+                <ProtectedRoute>
+                  <StateDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="/reserve" element={
+                <ProtectedRoute>
+                  <Reserve />
+                </ProtectedRoute>
+              } />
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
