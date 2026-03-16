@@ -11,7 +11,6 @@ const STATE_DATA: Record<string, any> = {
     verse: 'The luxury of being unshakeable.',
     blueprint: 'Hand-spun 200-count Khadi, protein-washed for a liquid drape.',
     ritual: "To be worn with Lasya's Vetiver Grounding Oil.",
-    video: '/src/assets/sthira.mp4',
     img: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=1200'
   },
   mauna: {
@@ -19,7 +18,6 @@ const STATE_DATA: Record<string, any> = {
     verse: 'The great silence within the weave.',
     blueprint: 'Organic cotton-silk blend, naturally dyed with charcoal.',
     ritual: "To be worn with Lasya's Sandalwood Meditation Balm.",
-    video: '/src/assets/mauna.mp4',
     img: 'https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&q=80&w=1200'
   },
   nirmalya: {
@@ -27,7 +25,6 @@ const STATE_DATA: Record<string, any> = {
     verse: 'The purity of the first offering.',
     blueprint: 'Fine Mulmul with hand-pressed floral motifs.',
     ritual: "To be worn with Lasya's Jasmine Infusion.",
-    video: '/src/assets/nirmalaya.mp4',
     img: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=1200'
   },
   prarthana: {
@@ -35,7 +32,6 @@ const STATE_DATA: Record<string, any> = {
     verse: 'A prayer woven into every stitch.',
     blueprint: 'Hand-loomed silk with gold zari borders.',
     ritual: "To be worn with Lasya's Saffron Anointing Oil.",
-    video: '/src/assets/prarthana.mp4',
     img: 'https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&q=80&w=1200'
   },
   chinmaya: {
@@ -43,7 +39,6 @@ const STATE_DATA: Record<string, any> = {
     verse: 'The clarity of pure consciousness.',
     blueprint: 'Sheer organza with intricate white-on-white embroidery.',
     ritual: "To be worn with Lasya's Lotus Seed Essence.",
-    video: '/src/assets/chinmaya.mp4',
     img: 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&q=80&w=1200'
   },
   ananda: {
@@ -51,7 +46,6 @@ const STATE_DATA: Record<string, any> = {
     verse: 'The bliss of being.',
     blueprint: 'Vibrant hand-dyed Jamdani in celestial hues.',
     ritual: "To be worn with Lasya's Rose Petal Mist.",
-    video: '/src/assets/ananda.mp4',
     img: 'https://images.unsplash.com/photo-1576188973526-0e5d742240ad?auto=format&fit=crop&q=80&w=1200'
   },
   mukti: {
@@ -59,7 +53,6 @@ const STATE_DATA: Record<string, any> = {
     verse: 'The liberation of the soul.',
     blueprint: 'Weightless linen-silk blend in ethereal white.',
     ritual: "To be worn with Lasya's Frankincense Grounding Resin.",
-    video: '/src/assets/mukti.mp4',
     img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&q=80&w=1200'
   }
 };
@@ -79,26 +72,14 @@ const StateDetail = () => {
 
       <div className="flex flex-col lg:flex-row min-h-screen">
         <div className="w-full lg:w-1/2 h-[60vh] lg:h-screen sticky top-0 overflow-hidden bg-black">
-          {state.video ? (
-            <video 
-              autoPlay 
-              loop 
-              muted 
-              playsInline 
-              className="w-full h-full object-contain"
-            >
-              <source src={state.video} type="video/mp4" />
-            </video>
-          ) : (
-            <motion.img 
-              initial={{ scale: 1.1, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 2 }}
-              src={state.img} 
-              alt={state.name}
-              className="w-full h-full object-cover grayscale"
-            />
-          )}
+          <motion.img 
+            initial={{ scale: 1.1, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 2 }}
+            src={state.img} 
+            alt={state.name}
+            className="w-full h-full object-cover grayscale"
+          />
         </div>
 
         <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 md:px-24 py-24 space-y-16">
