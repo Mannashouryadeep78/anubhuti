@@ -50,6 +50,7 @@ const STATE_DATA: Record<string, any> = {
     verse: 'The bliss of being.',
     blueprint: 'Vibrant hand-dyed Jamdani in celestial hues.',
     ritual: "To be worn with Lasya's Rose Petal Mist.",
+    video: '/src/assets/ananda.mp4',
     img: 'https://images.unsplash.com/photo-1576188973526-0e5d742240ad?auto=format&fit=crop&q=80&w=1200'
   },
   mukti: {
