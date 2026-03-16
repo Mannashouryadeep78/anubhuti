@@ -19,7 +19,7 @@ const STATE_DATA: Record<string, any> = {
     verse: 'The great silence within the weave.',
     blueprint: 'Organic cotton-silk blend, naturally dyed with charcoal.',
     ritual: "To be worn with Lasya's Sandalwood Meditation Balm.",
-    video: '/src/assets/mouna.mp4',
+    video: '/src/assets/mauna.mp4',
     img: 'https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&q=80&w=1200'
   },
   nirmalya: {
