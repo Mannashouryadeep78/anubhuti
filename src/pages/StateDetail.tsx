@@ -35,6 +35,7 @@ const STATE_DATA: Record<string, any> = {
     verse: 'A prayer woven into every stitch.',
     blueprint: 'Hand-loomed silk with gold zari borders.',
     ritual: "To be worn with Lasya's Saffron Anointing Oil.",
+    video: '/src/assets/prarthana.mp4',
     img: 'https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&q=80&w=1200'
   },
   chinmaya: {
