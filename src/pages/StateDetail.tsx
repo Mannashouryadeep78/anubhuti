@@ -57,6 +57,7 @@ const STATE_DATA: Record<string, any> = {
     verse: 'The liberation of the soul.',
     blueprint: 'Weightless linen-silk blend in ethereal white.',
     ritual: "To be worn with Lasya's Frankincense Grounding Resin.",
+    video: '/src/assets/mukti.mp4',
     img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&q=80&w=1200'
   }
 };
