@@ -5,12 +5,14 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { SutraKnot } from '@/components/SutraKnot';
 import RequestAccessModal from '@/components/RequestAccessModal';
+import SmokeTransition from '@/components/SmokeTransition';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 const Index = () => {
   const [passcode, setPasscode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const [showSmoke, setShowSmoke] = useState(false);
   const navigate = useNavigate();
 
   const handleEnter = async (e: React.FormEvent) => {
@@ -20,15 +22,13 @@ const Index = () => {
     setIsVerifying(true);
 
     try {
+      let success = false;
+
       // 1. Check for master override
       if (passcode === 'anubhuti_admin') {
-        localStorage.setItem('anubhuti_access', 'true');
-        navigate('/archive');
-        return;
-      }
-
-      // 2. Check Supabase for valid, non-expired code
-      if (supabase) {
+        success = true;
+      } else if (supabase) {
+        // 2. Check Supabase for valid, non-expired code
         const { data, error } = await supabase
           .from('access_codes')
           .select('*')
@@ -36,38 +36,46 @@ const Index = () => {
           .gt('expires_at', new Date().toISOString())
           .single();
 
-        if (data) {
-          localStorage.setItem('anubhuti_access', 'true');
-          toast.success("Access granted. Welcome.");
-          navigate('/archive');
-        } else {
-          toast.error("Invalid or expired passcode.", {
-            style: { background: '#0A0A0A', color: '#C5A059', border: '1px solid rgba(197, 160, 89, 0.2)' }
-          });
-        }
+        if (data) success = true;
       } else {
         // Fallback if Supabase isn't connected
-        if (passcode === '1234') {
-          localStorage.setItem('anubhuti_access', 'true');
-          navigate('/archive');
-        }
+        if (passcode === '1234') success = true;
+      }
+
+      if (success) {
+        localStorage.setItem('anubhuti_access', 'true');
+        setShowSmoke(true); // Trigger smoke transition
+      } else {
+        toast.error("Invalid or expired passcode.", {
+          style: { background: '#0A0A0A', color: '#C5A059', border: '1px solid rgba(197, 160, 89, 0.2)' }
+        });
+        setIsVerifying(false);
       }
     } catch (err) {
       console.error(err);
       toast.error("Verification failed.");
-    } finally {
       setIsVerifying(false);
     }
   };
 
+  const onTransitionComplete = () => {
+    navigate('/archive');
+  };
+
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-black">
+      <SmokeTransition isActive={showSmoke} onComplete={onTransitionComplete} />
+      
       <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover opacity-60">
         <source src="/src/assets/background.mp4" type="video/mp4" />
       </video>
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/60" />
 
-      <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-2xl">
+      <motion.div 
+        animate={showSmoke ? { opacity: 0, scale: 0.95 } : { opacity: 1, scale: 1 }}
+        transition={{ duration: 1 }}
+        className="relative z-10 flex flex-col items-center text-center px-6 max-w-2xl"
+      >
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 1.5 }}>
           <SutraKnot className="w-12 h-12 mb-12 text-[#C5A059]/60" />
           <h1 className="text-4xl md:text-5xl font-light mb-6 tracking-tight serif text-white">A private archive of seven spiritual states.</h1>
@@ -87,14 +95,14 @@ const Index = () => {
               />
             </div>
             <button type="submit" disabled={isVerifying} className="text-[10px] uppercase tracking-[0.5em] text-white/40 hover:text-[#C5A059] transition-colors font-bold">
-              {isVerifying ? "Verifying..." : "Enter the Silence"}
+              {isVerifying ? (showSmoke ? "Entering..." : "Verifying...") : "Enter the Silence"}
             </button>
           </form>
           <div className="pt-4">
             <RequestAccessModal trigger={<button className="text-[9px] uppercase tracking-[0.3em] text-[#C5A059]/60 hover:text-[#C5A059] transition-colors border-b border-[#C5A059]/20 pb-1">Request Private Access</button>} />
           </div>
         </motion.div>
-      </div>
+      </motion.div>
     </div>
   );
 };
