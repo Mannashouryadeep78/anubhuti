@@ -80,16 +80,29 @@ const Index = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] bg-black"
+            transition={{ duration: 1.5 }}
+            className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center"
           >
+            {/* 
+              Using mix-blend-mode: screen makes the black background of the video transparent,
+              allowing the smoke to appear as if it's floating over the page.
+            */}
             <video 
               autoPlay 
               muted
               playsInline
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover mix-blend-screen"
             >
               <source src="/src/assets/transition.mp4" type="video/mp4" />
             </video>
+            
+            {/* Subtle dark fade-out to bridge the gap to the next page */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 3.5, duration: 1.5 }}
+              className="absolute inset-0 bg-black"
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -100,8 +113,8 @@ const Index = () => {
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/60" />
 
       <motion.div 
-        animate={showTransition ? { opacity: 0, scale: 0.95 } : { opacity: 1, scale: 1 }}
-        transition={{ duration: 1 }}
+        animate={showTransition ? { opacity: 0, scale: 0.9, filter: 'blur(10px)' } : { opacity: 1, scale: 1, filter: 'blur(0px)' }}
+        transition={{ duration: 2, ease: "easeInOut" }}
         className="relative z-10 flex flex-col items-center text-center px-6 max-w-2xl"
       >
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 1.5 }}>
