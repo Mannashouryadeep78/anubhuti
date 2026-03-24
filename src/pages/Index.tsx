@@ -1,18 +1,17 @@
 "use client";
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { SutraKnot } from '@/components/SutraKnot';
 import RequestAccessModal from '@/components/RequestAccessModal';
-import SmokeTransition from '@/components/SmokeTransition';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 const Index = () => {
   const [passcode, setPasscode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [showSmoke, setShowSmoke] = useState(false);
+  const [showTransition, setShowTransition] = useState(false);
   const navigate = useNavigate();
 
   const handleEnter = async (e: React.FormEvent) => {
@@ -44,7 +43,7 @@ const Index = () => {
 
       if (success) {
         localStorage.setItem('anubhuti_access', 'true');
-        setShowSmoke(true); // Trigger smoke transition
+        setShowTransition(true);
       } else {
         toast.error("Invalid or expired passcode.", {
           style: { background: '#0A0A0A', color: '#C5A059', border: '1px solid rgba(197, 160, 89, 0.2)' }
@@ -64,7 +63,27 @@ const Index = () => {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-black">
-      <SmokeTransition isActive={showSmoke} onComplete={onTransitionComplete} />
+      {/* Video Transition Overlay */}
+      <AnimatePresence>
+        {showTransition && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] bg-black"
+          >
+            <video 
+              autoPlay 
+              muted
+              playsInline
+              onEnded={onTransitionComplete}
+              className="w-full h-full object-cover"
+            >
+              <source src="/src/assets/transition.mp4" type="video/mp4" />
+            </video>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover opacity-60">
         <source src="/src/assets/background.mp4" type="video/mp4" />
@@ -72,7 +91,7 @@ const Index = () => {
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/60" />
 
       <motion.div 
-        animate={showSmoke ? { opacity: 0, scale: 0.95 } : { opacity: 1, scale: 1 }}
+        animate={showTransition ? { opacity: 0, scale: 0.95 } : { opacity: 1, scale: 1 }}
         transition={{ duration: 1 }}
         className="relative z-10 flex flex-col items-center text-center px-6 max-w-2xl"
       >
@@ -95,7 +114,7 @@ const Index = () => {
               />
             </div>
             <button type="submit" disabled={isVerifying} className="text-[10px] uppercase tracking-[0.5em] text-white/40 hover:text-[#C5A059] transition-colors font-bold">
-              {isVerifying ? (showSmoke ? "Entering..." : "Verifying...") : "Enter the Silence"}
+              {isVerifying ? (showTransition ? "Entering..." : "Verifying...") : "Enter the Silence"}
             </button>
           </form>
           <div className="pt-4">
