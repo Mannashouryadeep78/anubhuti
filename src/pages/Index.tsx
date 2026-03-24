@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { SutraKnot } from '@/components/SutraKnot';
@@ -13,6 +13,16 @@ const Index = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [showTransition, setShowTransition] = useState(false);
   const navigate = useNavigate();
+
+  // Automatically transition after 5 seconds once the video starts
+  useEffect(() => {
+    if (showTransition) {
+      const timer = setTimeout(() => {
+        onTransitionComplete();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showTransition]);
 
   const handleEnter = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +86,6 @@ const Index = () => {
               autoPlay 
               muted
               playsInline
-              onEnded={onTransitionComplete}
               className="w-full h-full object-cover"
             >
               <source src="/src/assets/transition.mp4" type="video/mp4" />
