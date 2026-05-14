@@ -19,12 +19,12 @@ import { toast } from 'sonner';
 import emailjs from 'emailjs-com';
 
 /** 
- * ⚠️ ACTION REQUIRED: 
- * Replace the remaining placeholders with your actual keys from https://dashboard.emailjs.com/
+ * ⚠️ CONFIGURATION COMPLETE: 
+ * EmailJS is now configured to send private access codes.
  */
 const EMAILJS_SERVICE_ID = "service_bo901y7"; 
-const EMAILJS_TEMPLATE_ID = "template_id"; // Still needs to be replaced
-const EMAILJS_PUBLIC_KEY = "public_key";   // Still needs to be replaced
+const EMAILJS_TEMPLATE_ID = "template_qfe47bj";
+const EMAILJS_PUBLIC_KEY = "Op93lNk5aPMqcNNUg";
 
 interface RequestAccessModalProps {
   trigger: React.ReactNode;
@@ -72,27 +72,22 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
         ]);
       }
 
-      // 3. LOG THE CODE TO CONSOLE (For testing while EmailJS is being set up)
+      // 3. LOG THE CODE TO CONSOLE (For testing/debugging)
       console.log("%c ANUBHUTI ACCESS CODE ", "background: #C5A059; color: #000; font-weight: bold; padding: 4px;");
       console.log(`Email: ${formData.email}`);
       console.log(`Code: ${otp}`);
       console.log("------------------------------------------");
 
       // 4. Send the email via EmailJS
-      if (EMAILJS_PUBLIC_KEY === "public_key") {
-        console.warn("EmailJS keys are not configured. Skipping email send.");
-        toast.info("EmailJS keys not set. Check browser console for the code.");
-      } else {
-        const templateParams = {
-          to_name: formData.name,
-          to_email: formData.email,
-          otp_code: otp,
-          reply_to: 'noreply@anubhuti.com'
-        };
+      const templateParams = {
+        to_name: formData.name,
+        to_email: formData.email,
+        otp_code: otp,
+        reply_to: 'noreply@anubhuti.com'
+      };
 
-        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, EMAILJS_PUBLIC_KEY);
-        toast.success(`Passcode sent to ${formData.email}`);
-      }
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, EMAILJS_PUBLIC_KEY);
+      toast.success(`Passcode sent to ${formData.email}`);
 
       // 5. Store email for verification on the Index page
       localStorage.setItem('pending_access_email', formData.email.trim().toLowerCase());
