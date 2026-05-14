@@ -34,72 +34,44 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
     setIsLoading(true);
 
     try {
-      let requestId = crypto.randomUUID();
+      // 1. Generate a 6-digit OTP immediately
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 3); // Valid for 3 days
 
-      // 1. Check if a valid, non-expired code already exists for this email
-      const { data: existingCode } = await supabase
-        .from('access_codes')
-        .select('code')
-        .eq('email', formData.email)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (existingCode) {
-        // AUTO-APPROVE: Send existing code to user immediately
-        await fetch(`https://formsubmit.co/ajax/${formData.email}`, {
-          method: "POST",
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            _subject: "Your Private Access Code - Anubhuti",
-            message: `Welcome back. Your existing private passcode is still valid.\n\nPasscode: ${existingCode.code}\n\nThis code remains valid for its original 72-hour window.`,
-            _template: "box"
-          })
-        });
-
-        // Log the request as auto-approved
+      // 2. Save to Supabase (if available)
+      if (supabase) {
+        await supabase.from('access_codes').insert([
+          { 
+            email: formData.email, 
+            code: otp, 
+            expires_at: expiresAt.toISOString() 
+          }
+        ]);
+        
         await supabase.from('access_requests').insert([
           { 
-            id: requestId,
             full_name: formData.name, 
             email: formData.email, 
             phone: formData.phone,
             status: 'approved'
           }
         ]);
-
-        toast.success("Welcome back. Your valid passcode has been resent to your email.");
-      } else {
-        // NORMAL FLOW: Save request and notify admin
-        if (supabase) {
-          const { error } = await supabase.from('access_requests').insert([
-            { 
-              id: requestId,
-              full_name: formData.name, 
-              email: formData.email, 
-              phone: formData.phone,
-              status: 'pending'
-            }
-          ]);
-          if (error) throw error;
-        }
-
-        const approvalLink = `${window.location.origin}/admin/portal?approve=${requestId}`;
-        
-        await fetch("https://formsubmit.co/ajax/mannashouryadeep78@gmail.com", {
-          method: "POST",
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...formData,
-            _subject: "ACTION REQUIRED: New Access Request",
-            "Approval Link": approvalLink,
-            _message: `A new request has been received. Click the link below to approve and send the OTP.\n\n${approvalLink}`
-          })
-        });
       }
 
+      // 3. Send OTP to User immediately via FormSubmit
+      await fetch(`https://formsubmit.co/ajax/${formData.email}`, {
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          _subject: "Your Private Access Code - Anubhuti",
+          message: `Welcome to Anubhuti.\n\nYour private passcode is: ${otp}\n\nThis code is valid for 72 hours. Use it to enter the archive and explore our works.`,
+          _template: "box"
+        })
+      });
+
       setIsSubmitted(true);
+      toast.success("Passcode sent to your email.");
     } catch (error) {
       console.error("Submission error:", error);
       toast.error("There was an issue processing your request.");
@@ -135,7 +107,7 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
                   <Input type="tel" required value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="bg-transparent border-white/10 focus:border-[#C5A059] rounded-none h-12 text-sm" />
                 </div>
                 <Button type="submit" disabled={isLoading} className="w-full bg-[#C5A059] hover:bg-[#D4AF37] text-black rounded-none h-14 text-[10px] uppercase tracking-[0.4em] font-bold mt-4">
-                  {isLoading ? "Processing..." : "Submit Request"}
+                  {isLoading ? "Processing..." : "Get Instant Access"}
                 </Button>
               </form>
             </motion.div>
@@ -144,8 +116,8 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
               <div className="w-16 h-16 rounded-full border border-[#C5A059]/30 flex items-center justify-center mb-8">
                 <CheckCircle2 className="text-[#C5A059] w-8 h-8" />
               </div>
-              <h3 className="text-2xl serif font-light text-[#C5A059] mb-4">Request Received</h3>
-              <p className="text-sm text-white/60 leading-relaxed max-w-[240px] mx-auto">Your intention has been noted. We will review your request shortly.</p>
+              <h3 className="text-2xl serif font-light text-[#C5A059] mb-4">Access Granted</h3>
+              <p className="text-sm text-white/60 leading-relaxed max-w-[240px] mx-auto">Your private passcode has been sent to your email. Please check your inbox (and spam folder).</p>
               <div className="mt-12">
                 <DialogTrigger asChild>
                   <button className="text-[10px] uppercase tracking-[0.3em] text-white/40 hover:text-[#C5A059]">Close</button>

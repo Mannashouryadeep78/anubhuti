@@ -1,55 +1,71 @@
 "use client";
 
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { SutraKnot } from '@/components/SutraKnot';
+import { useCart } from '@/context/CartContext';
+import { toast } from 'sonner';
 
 const STATE_DATA: Record<string, any> = {
   sthira: {
+    id: 'sthira',
     name: 'Sthira',
+    price: 18500,
     verse: 'The luxury of being unshakeable.',
     blueprint: 'Hand-spun 200-count Khadi, protein-washed for a liquid drape.',
     ritual: "To be worn with Lasya's Vetiver Grounding Oil.",
     img: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=1200'
   },
   mauna: {
+    id: 'mauna',
     name: 'Mauna',
+    price: 22000,
     verse: 'The great silence within the weave.',
     blueprint: 'Organic cotton-silk blend, naturally dyed with charcoal.',
     ritual: "To be worn with Lasya's Sandalwood Meditation Balm.",
     img: 'https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&q=80&w=1200'
   },
   nirmalya: {
+    id: 'nirmalya',
     name: 'Nirmalya',
+    price: 15000,
     verse: 'The purity of the first offering.',
     blueprint: 'Fine Mulmul with hand-pressed floral motifs.',
     ritual: "To be worn with Lasya's Jasmine Infusion.",
     img: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=1200'
   },
   prarthana: {
+    id: 'prarthana',
     name: 'Prarthana',
+    price: 28000,
     verse: 'A prayer woven into every stitch.',
     blueprint: 'Hand-loomed silk with gold zari borders.',
     ritual: "To be worn with Lasya's Saffron Anointing Oil.",
     img: 'https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&q=80&w=1200'
   },
   chinmaya: {
+    id: 'chinmaya',
     name: 'Chinmaya',
+    price: 32000,
     verse: 'The clarity of pure consciousness.',
     blueprint: 'Sheer organza with intricate white-on-white embroidery.',
     ritual: "To be worn with Lasya's Lotus Seed Essence.",
     img: 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&q=80&w=1200'
   },
   ananda: {
+    id: 'ananda',
     name: 'Ananda',
+    price: 24500,
     verse: 'The bliss of being.',
     blueprint: 'Vibrant hand-dyed Jamdani in celestial hues.',
     ritual: "To be worn with Lasya's Rose Petal Mist.",
     img: 'https://images.unsplash.com/photo-1576188973526-0e5d742240ad?auto=format&fit=crop&q=80&w=1200'
   },
   mukti: {
+    id: 'mukti',
     name: 'Mukti',
+    price: 19000,
     verse: 'The liberation of the soul.',
     blueprint: 'Weightless linen-silk blend in ethereal white.',
     ritual: "To be worn with Lasya's Frankincense Grounding Resin.",
@@ -59,7 +75,31 @@ const STATE_DATA: Record<string, any> = {
 
 const StateDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
   const state = STATE_DATA[id as string] || STATE_DATA.sthira;
+
+  const handleAddToCart = () => {
+    addToCart({
+      id: state.id,
+      name: state.name,
+      price: state.price,
+      image: state.img,
+      quantity: 1
+    });
+    toast.success(`${state.name} added to your selection.`);
+  };
+
+  const handleBuyNow = () => {
+    addToCart({
+      id: state.id,
+      name: state.name,
+      price: state.price,
+      image: state.img,
+      quantity: 1
+    });
+    navigate('/checkout');
+  };
 
   return (
     <div className="min-h-screen bg-[#F5F2ED]">
@@ -89,7 +129,10 @@ const StateDetail = () => {
             transition={{ delay: 0.5, duration: 1 }}
             className="space-y-4"
           >
-            <span className="text-[10px] uppercase tracking-[0.5em] text-muted-foreground">The State</span>
+            <div className="flex justify-between items-end">
+              <span className="text-[10px] uppercase tracking-[0.5em] text-muted-foreground">The State</span>
+              <span className="text-xl serif">₹{state.price.toLocaleString()}</span>
+            </div>
             <h1 className="text-5xl md:text-7xl serif font-light">{state.name}</h1>
           </motion.div>
 
@@ -114,12 +157,19 @@ const StateDetail = () => {
               <p className="text-sm leading-relaxed text-primary/80">{state.ritual}</p>
             </div>
 
-            <div className="pt-12">
-              <Link to="/reserve">
-                <button className="w-full py-6 border border-primary/10 hover:border-primary/40 transition-all text-[10px] uppercase tracking-[0.5em] text-primary/60 hover:text-primary">
-                  Reserve the Work
-                </button>
-              </Link>
+            <div className="pt-12 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button 
+                onClick={handleAddToCart}
+                className="py-6 border border-primary/10 hover:border-primary/40 transition-all text-[10px] uppercase tracking-[0.5em] text-primary/60 hover:text-primary"
+              >
+                Add to Selection
+              </button>
+              <button 
+                onClick={handleBuyNow}
+                className="py-6 bg-primary text-primary-foreground hover:bg-primary/90 transition-all text-[10px] uppercase tracking-[0.5em] font-bold"
+              >
+                Buy Now
+              </button>
             </div>
           </motion.div>
         </div>
