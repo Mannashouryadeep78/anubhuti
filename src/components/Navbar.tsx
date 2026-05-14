@@ -73,8 +73,8 @@ const Navbar = () => {
         </div>
 
         {/* Center Logo */}
-        <div className="absolute left-1/2 -translate-x-1/2">
-          <Link to="/" className="text-xl md:text-2xl serif uppercase tracking-[0.4em] font-light">
+        <div className="md:absolute md:left-1/2 md:-translate-x-1/2 z-10">
+          <Link to="/" className="text-lg md:text-2xl serif uppercase tracking-[0.2em] md:tracking-[0.4em] font-light whitespace-nowrap">
             Anubhuti
           </Link>
         </div>
