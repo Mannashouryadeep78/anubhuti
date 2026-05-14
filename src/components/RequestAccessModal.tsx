@@ -18,12 +18,13 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import emailjs from 'emailjs-com';
 
-// --- EMAILJS CONFIGURATION ---
-// Replace these with your actual keys from https://dashboard.emailjs.com/
+/** 
+ * ACTION REQUIRED: Replace these placeholders with your actual EmailJS keys 
+ * from https://dashboard.emailjs.com/
+ */
 const EMAILJS_SERVICE_ID = "service_id"; 
 const EMAILJS_TEMPLATE_ID = "template_id";
 const EMAILJS_PUBLIC_KEY = "public_key";
-// -----------------------------
 
 interface RequestAccessModalProps {
   trigger: React.ReactNode;
@@ -71,39 +72,35 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
         ]);
       }
 
-      // 3. Development Fallback: Log the code to the console
-      // This allows you to test the app even if EmailJS isn't configured yet.
-      console.log("------------------------------------------");
-      console.log(`DEVELOPMENT MODE: OTP for ${formData.email} is ${otp}`);
+      // 3. LOG THE CODE TO CONSOLE (For testing while EmailJS is being set up)
+      console.log("%c ANUBHUTI ACCESS CODE ", "background: #C5A059; color: #000; font-weight: bold; padding: 4px;");
+      console.log(`Email: ${formData.email}`);
+      console.log(`Code: ${otp}`);
       console.log("------------------------------------------");
 
       // 4. Send the email via EmailJS
-      const templateParams = {
-        to_name: formData.name,
-        to_email: formData.email,
-        otp_code: otp,
-        reply_to: 'noreply@anubhuti.com'
-      };
+      if (EMAILJS_PUBLIC_KEY === "public_key") {
+        // If keys are still placeholders, we skip the API call to avoid the 400 error
+        console.warn("EmailJS keys are not configured. Skipping email send.");
+        toast.info("EmailJS keys not set. Check browser console for the code.");
+      } else {
+        const templateParams = {
+          to_name: formData.name,
+          to_email: formData.email,
+          otp_code: otp,
+          reply_to: 'noreply@anubhuti.com'
+        };
 
-      try {
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, EMAILJS_PUBLIC_KEY);
         toast.success(`Passcode sent to ${formData.email}`);
-      } catch (emailError: any) {
-        console.error("EmailJS Error:", emailError);
-        // If keys are invalid, we still proceed in the UI so you can use the console-logged code
-        if (EMAILJS_PUBLIC_KEY === "public_key") {
-          toast.info("EmailJS keys not set. Check console for the code.");
-        } else {
-          toast.error("Email failed, but code is in console.");
-        }
       }
 
       // 5. Store email for verification on the Index page
       localStorage.setItem('pending_access_email', formData.email.trim().toLowerCase());
       setIsSubmitted(true);
     } catch (error: any) {
-      console.error("Database Error:", error);
-      toast.error("Failed to process request. Please try again.");
+      console.error("Request Error:", error);
+      toast.error("Failed to process request. Check console for details.");
     } finally {
       setIsLoading(false);
     }
