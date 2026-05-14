@@ -18,6 +18,13 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import emailjs from 'emailjs-com';
 
+// --- EMAILJS CONFIGURATION ---
+// Replace these with your actual keys from https://dashboard.emailjs.com/
+const EMAILJS_SERVICE_ID = "service_id"; 
+const EMAILJS_TEMPLATE_ID = "template_id";
+const EMAILJS_PUBLIC_KEY = "public_key";
+// -----------------------------
+
 interface RequestAccessModalProps {
   trigger: React.ReactNode;
 }
@@ -64,12 +71,13 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
         ]);
       }
 
-      // 3. Send the email via EmailJS
-      // IMPORTANT: Replace these placeholders with your actual EmailJS credentials
-      const SERVICE_ID = "service_id"; // e.g., "service_gmail"
-      const TEMPLATE_ID = "template_id"; // e.g., "template_otp"
-      const PUBLIC_KEY = "public_key"; // Your EmailJS Public Key
+      // 3. Development Fallback: Log the code to the console
+      // This allows you to test the app even if EmailJS isn't configured yet.
+      console.log("------------------------------------------");
+      console.log(`DEVELOPMENT MODE: OTP for ${formData.email} is ${otp}`);
+      console.log("------------------------------------------");
 
+      // 4. Send the email via EmailJS
       const templateParams = {
         to_name: formData.name,
         to_email: formData.email,
@@ -77,23 +85,25 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
         reply_to: 'noreply@anubhuti.com'
       };
 
-      // We attempt to send. If IDs are placeholders, it will fail but we'll catch it.
-      await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY);
+      try {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, EMAILJS_PUBLIC_KEY);
+        toast.success(`Passcode sent to ${formData.email}`);
+      } catch (emailError: any) {
+        console.error("EmailJS Error:", emailError);
+        // If keys are invalid, we still proceed in the UI so you can use the console-logged code
+        if (EMAILJS_PUBLIC_KEY === "public_key") {
+          toast.info("EmailJS keys not set. Check console for the code.");
+        } else {
+          toast.error("Email failed, but code is in console.");
+        }
+      }
 
-      // 4. Store email for verification on the Index page
+      // 5. Store email for verification on the Index page
       localStorage.setItem('pending_access_email', formData.email.trim().toLowerCase());
-
-      toast.success(`Passcode sent to ${formData.email}`);
       setIsSubmitted(true);
     } catch (error: any) {
-      console.error("Email/OTP Error:", error);
-      // If EmailJS fails because of missing IDs, we still show success in UI for demo purposes
-      // but log the error so the developer knows to fix the IDs.
-      if (error.text === "The user_id parameter is required") {
-        toast.error("EmailJS not configured. Please add your Public Key.");
-      } else {
-        toast.error("Failed to send email. Please try again.");
-      }
+      console.error("Database Error:", error);
+      toast.error("Failed to process request. Please try again.");
     } finally {
       setIsLoading(false);
     }
