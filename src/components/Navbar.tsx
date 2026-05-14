@@ -1,20 +1,23 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Lock, Menu, X, User } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Lock, Menu, X, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CartDrawer from './CartDrawer';
+import { toast } from 'sonner';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // Determine if the user has "entered" the archive
-  const hasEntered = location.pathname !== '/' && location.pathname !== '/admin/login';
+  // Determine if the user has "entered" the archive based on localStorage
+  const [hasAccess, setHasAccess] = useState(localStorage.getItem('anubhuti_access') === 'true');
 
-  // Close menu when route changes
+  // Update access state when location changes (in case of login/logout)
   useEffect(() => {
+    setHasAccess(localStorage.getItem('anubhuti_access') === 'true');
     setIsOpen(false);
   }, [location]);
 
@@ -26,6 +29,14 @@ const Navbar = () => {
       document.body.style.overflow = 'unset';
     }
   }, [isOpen]);
+
+  const handleExit = () => {
+    localStorage.removeItem('anubhuti_access');
+    localStorage.removeItem('pending_access_email');
+    setHasAccess(false);
+    toast.info("You have returned to the world.");
+    navigate('/');
+  };
 
   return (
     <>
@@ -39,7 +50,7 @@ const Navbar = () => {
             About
           </Link>
           
-          {hasEntered && (
+          {hasAccess && (
             <>
               <Link 
                 to="/archive" 
@@ -56,7 +67,7 @@ const Navbar = () => {
             </>
           )}
 
-          {!hasEntered && (
+          {!hasAccess && (
             <Link 
               to="/admin/login" 
               className="flex items-center space-x-2 text-[11px] font-bold tracking-[0.2em] hover:text-gray-400 transition-colors uppercase"
@@ -76,7 +87,18 @@ const Navbar = () => {
 
         {/* Desktop Right Side Links */}
         <div className="hidden md:flex items-center space-x-8">
-          {hasEntered && <CartDrawer />}
+          {hasAccess && (
+            <>
+              <CartDrawer />
+              <button 
+                onClick={handleExit}
+                className="text-[11px] font-bold tracking-[0.2em] text-[#C5A059] hover:text-white transition-colors uppercase flex items-center gap-2"
+              >
+                Exit the Silence
+                <LogOut size={12} />
+              </button>
+            </>
+          )}
           <a 
             href="#" 
             className="text-[11px] font-bold tracking-[0.2em] border-b border-white pb-0.5 hover:text-gray-400 hover:border-gray-400 transition-all uppercase"
@@ -87,7 +109,7 @@ const Navbar = () => {
 
         {/* Mobile Menu Toggle */}
         <div className="md:hidden flex items-center space-x-4 ml-auto">
-          {hasEntered && <CartDrawer />}
+          {hasAccess && <CartDrawer />}
           <button 
             onClick={() => setIsOpen(true)}
             className="text-white p-1"
@@ -117,13 +139,19 @@ const Navbar = () => {
 
             <div className="flex flex-col items-center space-y-12 text-center px-6">
               <Link to="/ledger" className="text-4xl serif uppercase tracking-tight">About</Link>
-              {hasEntered && (
+              {hasAccess && (
                 <>
                   <Link to="/archive" className="text-4xl serif uppercase tracking-tight">Archive</Link>
                   <Link to="/orders" className="text-4xl serif uppercase tracking-tight">Orders</Link>
+                  <button 
+                    onClick={handleExit}
+                    className="text-2xl serif uppercase tracking-widest text-[#C5A059]"
+                  >
+                    Exit the Silence
+                  </button>
                 </>
               )}
-              {!hasEntered && <Link to="/admin/login" className="text-4xl serif uppercase tracking-tight">Admin</Link>}
+              {!hasAccess && <Link to="/admin/login" className="text-4xl serif uppercase tracking-tight">Admin</Link>}
             </div>
           </motion.div>
         )}
