@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Copy, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -23,6 +23,7 @@ interface RequestAccessModalProps {
 const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -36,10 +37,11 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
     try {
       // 1. Generate a 6-digit OTP immediately
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedCode(otp);
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 3); // Valid for 3 days
 
-      // 2. Save to Supabase (if available)
+      // 2. Save to Supabase
       if (supabase) {
         await supabase.from('access_codes').insert([
           { 
@@ -59,25 +61,33 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
         ]);
       }
 
-      // 3. Send OTP to User immediately via FormSubmit
-      await fetch(`https://formsubmit.co/ajax/${formData.email}`, {
+      // 3. Attempt to send email (as a backup)
+      // Note: FormSubmit requires a one-time activation per recipient email.
+      // By showing the code on screen, we bypass this friction for the user.
+      fetch(`https://formsubmit.co/ajax/${formData.email}`, {
         method: "POST",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           _subject: "Your Private Access Code - Anubhuti",
-          message: `Welcome to Anubhuti.\n\nYour private passcode is: ${otp}\n\nThis code is valid for 72 hours. Use it to enter the archive and explore our works.`,
-          _template: "box"
+          message: `Welcome to Anubhuti.\n\nYour private passcode is: ${otp}\n\nThis code is valid for 72 hours.`,
+          _template: "box",
+          _captcha: "false"
         })
-      });
+      }).catch(() => console.log("Email backup failed, but code is shown on screen."));
 
       setIsSubmitted(true);
-      toast.success("Passcode sent to your email.");
+      toast.success("Access granted instantly.");
     } catch (error) {
       console.error("Submission error:", error);
       toast.error("There was an issue processing your request.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(generatedCode);
+    toast.success("Code copied to clipboard");
   };
 
   return (
@@ -112,17 +122,32 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
               </form>
             </motion.div>
           ) : (
-            <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
+            <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-12 text-center flex flex-col items-center justify-center min-h-[450px]">
               <div className="w-16 h-16 rounded-full border border-[#C5A059]/30 flex items-center justify-center mb-8">
                 <CheckCircle2 className="text-[#C5A059] w-8 h-8" />
               </div>
-              <h3 className="text-2xl serif font-light text-[#C5A059] mb-4">Access Granted</h3>
-              <p className="text-sm text-white/60 leading-relaxed max-w-[240px] mx-auto">Your private passcode has been sent to your email. Please check your inbox (and spam folder).</p>
-              <div className="mt-12">
-                <DialogTrigger asChild>
-                  <button className="text-[10px] uppercase tracking-[0.3em] text-white/40 hover:text-[#C5A059]">Close</button>
-                </DialogTrigger>
+              <h3 className="text-2xl serif font-light text-[#C5A059] mb-2">Access Granted</h3>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-8">Your private passcode is ready</p>
+              
+              <div className="bg-white/5 border border-white/10 p-6 w-full mb-8 group relative">
+                <span className="text-3xl tracking-[0.5em] font-light text-white block mb-2">{generatedCode}</span>
+                <button 
+                  onClick={copyToClipboard}
+                  className="text-[9px] uppercase tracking-widest text-[#C5A059] hover:text-white transition-colors flex items-center justify-center w-full gap-2"
+                >
+                  <Copy size={10} /> Copy Code
+                </button>
               </div>
+
+              <p className="text-[11px] text-white/60 leading-relaxed max-w-[240px] mx-auto mb-12">
+                Use this code on the entry screen to unlock the archive. It is valid for 72 hours.
+              </p>
+
+              <DialogTrigger asChild>
+                <button className="text-[10px] uppercase tracking-[0.4em] bg-white/10 hover:bg-white/20 text-white px-8 py-4 transition-all">
+                  Return to Entry
+                </button>
+              </DialogTrigger>
             </motion.div>
           )}
         </AnimatePresence>
