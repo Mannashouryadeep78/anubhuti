@@ -32,24 +32,24 @@ const Index = ({ onStartTransition }: IndexProps) => {
         return;
       }
 
-      // 2. Verify Custom OTP from Database
-      const email = localStorage.getItem('pending_access_email');
-      
-      if (!email) {
-        toast.error("Please request access first.");
-        setIsVerifying(false);
-        return;
-      }
-
+      // 2. Verify Passcode from Database
       if (supabase) {
-        const { data, error } = await supabase
+        const email = localStorage.getItem('pending_access_email');
+        
+        // We search for the code. If we have the email in local storage, we use it to be precise.
+        // Otherwise, we search globally for a valid matching code.
+        let query = supabase
           .from('access_codes')
           .select('*')
-          .eq('email', email)
           .eq('code', passcode)
           .gt('expires_at', new Date().toISOString())
-          .order('created_at', { ascending: false })
-          .limit(1);
+          .order('created_at', { ascending: false });
+
+        if (email) {
+          query = query.eq('email', email);
+        }
+
+        const { data, error } = await query.limit(1);
 
         if (error || !data || data.length === 0) {
           toast.error("Invalid or expired passcode.", {
@@ -58,6 +58,8 @@ const Index = ({ onStartTransition }: IndexProps) => {
           setIsVerifying(false);
         } else {
           localStorage.setItem('anubhuti_access', 'true');
+          // Store the email associated with this code for future reference
+          localStorage.setItem('pending_access_email', data[0].email);
           proceed();
         }
       }

@@ -44,42 +44,57 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
     setIsLoading(true);
 
     try {
-      // 1. Generate a custom 6-digit OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date();
-      // Updated to 72 hours as requested
-      expiresAt.setHours(expiresAt.getHours() + 72);
+      let otp = '';
+      const emailKey = formData.email.trim().toLowerCase();
 
-      // 2. Save the code to the database for verification
+      // 1. Check for existing valid code in the database
       if (supabase) {
-        const { error: dbError } = await supabase.from('access_codes').insert([
-          { 
-            email: formData.email.trim().toLowerCase(), 
-            code: otp, 
-            expires_at: expiresAt.toISOString() 
-          }
-        ]);
+        const { data: existingCodes } = await supabase
+          .from('access_codes')
+          .select('code')
+          .eq('email', emailKey)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-        if (dbError) throw dbError;
+        if (existingCodes && existingCodes.length > 0) {
+          // Reuse the existing valid code
+          otp = existingCodes[0].code;
+        } else {
+          // Generate a new 6-digit OTP
+          otp = Math.floor(100000 + Math.random() * 900000).toString();
+          const expiresAt = new Date();
+          expiresAt.setHours(expiresAt.getHours() + 72);
 
-        // Log the request for the admin
-        await supabase.from('access_requests').insert([
-          { 
-            full_name: formData.name, 
-            email: formData.email.trim().toLowerCase(), 
-            phone: formData.phone,
-            status: 'approved'
-          }
-        ]);
+          const { error: dbError } = await supabase.from('access_codes').insert([
+            { 
+              email: emailKey, 
+              code: otp, 
+              expires_at: expiresAt.toISOString() 
+            }
+          ]);
+
+          if (dbError) throw dbError;
+
+          // Log the request for the admin
+          await supabase.from('access_requests').insert([
+            { 
+              full_name: formData.name, 
+              email: emailKey, 
+              phone: formData.phone,
+              status: 'approved'
+            }
+          ]);
+        }
       }
 
-      // 3. LOG THE CODE TO CONSOLE (For testing/debugging)
+      // 2. LOG THE CODE TO CONSOLE (For testing/debugging)
       console.log("%c ANUBHUTI ACCESS CODE ", "background: #C5A059; color: #000; font-weight: bold; padding: 4px;");
       console.log(`Email: ${formData.email}`);
       console.log(`Code: ${otp}`);
       console.log("------------------------------------------");
 
-      // 4. Send the email via EmailJS
+      // 3. Send the email via EmailJS
       const templateParams = {
         to_name: formData.name,
         to_email: formData.email,
@@ -90,8 +105,8 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
       await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, EMAILJS_PUBLIC_KEY);
       toast.success(`Passcode sent to ${formData.email}`);
 
-      // 5. Store email for verification on the Index page
-      localStorage.setItem('pending_access_email', formData.email.trim().toLowerCase());
+      // 4. Store email for verification on the Index page
+      localStorage.setItem('pending_access_email', emailKey);
       setIsSubmitted(true);
     } catch (error: any) {
       console.error("Request Error:", error);
