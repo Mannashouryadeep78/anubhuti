@@ -11,11 +11,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Mail, CheckCircle2 } from 'lucide-react';
+import { Mail, CheckCircle2, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import emailjs from 'emailjs-com';
 
 interface RequestAccessModalProps {
   trigger: React.ReactNode;
@@ -35,68 +34,38 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
     setIsLoading(true);
 
     try {
-      // 1. Generate a custom 6-digit OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 24); // Valid for 24 hours
-
-      // 2. Save the code to the database for verification
-      if (supabase) {
-        const { error: dbError } = await supabase.from('access_codes').insert([
-          { 
-            email: formData.email, 
-            code: otp, 
-            expires_at: expiresAt.toISOString() 
-          }
-        ]);
-
-        if (dbError) throw dbError;
-
-        // Log the request
-        await supabase.from('access_requests').insert([
-          { 
-            full_name: formData.name, 
-            email: formData.email, 
-            phone: formData.phone,
-            status: 'approved'
-          }
-        ]);
-      }
-
-      // 3. Send the customized email via EmailJS
-      // Note: You can customize the template in your EmailJS dashboard
-      // For the preview, we'll also show a toast with the code so you can test immediately
-      const templateParams = {
-        to_name: formData.name,
-        to_email: formData.email,
-        otp_code: otp,
-        message: `Your private access code for Anubhuti is: ${otp}`
-      };
-
-      // Replace these with your actual EmailJS credentials for production
-      // service_id, template_id, user_id
-      emailjs.send(
-        'service_default', 
-        'template_otp', 
-        templateParams, 
-        'user_placeholder'
-      ).then(
-        () => console.log('Email sent successfully'),
-        (error) => console.log('Email failed but code is in DB:', error)
-      );
-
-      // Store email for verification on the next screen
-      localStorage.setItem('pending_access_email', formData.email);
-      
-      // FOR PREVIEW ONLY: Show the code in a toast so you don't have to wait for email
-      toast.success(`Code sent to ${formData.email}. (Preview Code: ${otp})`, {
-        duration: 10000,
+      // 1. Send OTP via Supabase Auth
+      // This sends a 6-digit code directly to the user's email.
+      const { error } = await supabase.auth.signInWithOtp({
+        email: formData.email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
       });
 
+      if (error) throw error;
+
+      // 2. Store email for verification on the Index page
+      localStorage.setItem('pending_access_email', formData.email.trim().toLowerCase());
+
+      // 3. Log the request for the admin
+      await supabase.from('access_requests').insert([
+        { 
+          full_name: formData.name, 
+          email: formData.email.trim().toLowerCase(), 
+          phone: formData.phone,
+          status: 'approved'
+        }
+      ]);
+
+      // FOR TESTING: Since real emails can sometimes be delayed or filtered,
+      // we show a success message and remind them to check spam.
+      toast.success("Passcode sent. Please check your inbox and spam folder.");
+      
       setIsSubmitted(true);
     } catch (error: any) {
-      console.error("Submission error:", error);
-      toast.error("There was an issue generating your access code.");
+      console.error("OTP Error:", error);
+      toast.error(error.message || "Failed to send code. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -126,10 +95,10 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] uppercase tracking-widest text-white/60">Phone Number</Label>
-                  <Input type="tel" required value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="bg-transparent border-white/10 focus:border-[#C5A059] rounded-none h-12 text-sm" />
+                  <Input type="tel" required value={formData.phoneonChange={(e) => setFormData({...formData, phone: e.target.value})} className="bg-transparent border-white/10 focus:border-[#C5A059] rounded-none h-12 text-sm" />
                 </div>
                 <Button type="submit" disabled={isLoading} className="w-full bg-[#C5A059] hover:bg-[#D4AF37] text-black rounded-none h-14 text-[10px] uppercase tracking-[0.4em] font-bold mt-4">
-                  {isLoading ? "Generating Code..." : "Get Instant Access"}
+                  {isLoading ? "Sending Code..." : "Get Instant Access"}
                 </Button>
               </form>
             </motion.div>
@@ -139,11 +108,18 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
                 <Mail className="text-[#C5A059] w-8 h-8" />
               </div>
               <h3 className="text-2xl serif font-light text-[#C5A059] mb-4">Code Sent</h3>
-              <p className="text-sm text-white/60 leading-relaxed max-w-[240px] mx-auto">
-                A customized passcode has been sent to <strong>{formData.email}</strong>. 
-                Please check your inbox (and spam) and enter it on the main screen.
+              <p className="text-sm text-white/60 leading-relaxed max-w-[240px] mx-auto mb-6">
+                A 6-digit passcode has been sent to <strong>{formData.email}</strong>. 
               </p>
-              <div className="mt-12">
+              
+              <div className="flex items-start gap-3 bg-white/5 p-4 text-left mb-8 border border-white/5">
+                <AlertCircle className="text-[#C5A059] w-4 h-4 mt-0.5 shrink-0" />
+                <p className="text-[10px] text-white/40 leading-relaxed uppercase tracking-wider">
+                  If you don't see it in your inbox within a minute, please check your <strong>Spam</strong> or <strong>Promotions</strong> folder.
+                </p>
+              </div>
+
+              <div className="mt-4">
                 <DialogTrigger asChild>
                   <button className="text-[10px] uppercase tracking-[0.4em] bg-white/10 hover:bg-white/20 text-white px-8 py-4 transition-all">
                     Return to Entry
