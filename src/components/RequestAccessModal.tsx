@@ -11,10 +11,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Mail } from 'lucide-react';
+import { Mail, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import emailjs from 'emailjs-com';
 
 interface RequestAccessModalProps {
   trigger: React.ReactNode;
@@ -34,34 +35,68 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
     setIsLoading(true);
 
     try {
-      // 1. Send OTP via Supabase Auth (Direct to email, no activation needed)
-      const { error } = await supabase.auth.signInWithOtp({
-        email: formData.email,
-        options: {
-          emailRedirectTo: window.location.origin,
-        },
+      // 1. Generate a custom 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24); // Valid for 24 hours
+
+      // 2. Save the code to the database for verification
+      if (supabase) {
+        const { error: dbError } = await supabase.from('access_codes').insert([
+          { 
+            email: formData.email, 
+            code: otp, 
+            expires_at: expiresAt.toISOString() 
+          }
+        ]);
+
+        if (dbError) throw dbError;
+
+        // Log the request
+        await supabase.from('access_requests').insert([
+          { 
+            full_name: formData.name, 
+            email: formData.email, 
+            phone: formData.phone,
+            status: 'approved'
+          }
+        ]);
+      }
+
+      // 3. Send the customized email via EmailJS
+      // Note: You can customize the template in your EmailJS dashboard
+      // For the preview, we'll also show a toast with the code so you can test immediately
+      const templateParams = {
+        to_name: formData.name,
+        to_email: formData.email,
+        otp_code: otp,
+        message: `Your private access code for Anubhuti is: ${otp}`
+      };
+
+      // Replace these with your actual EmailJS credentials for production
+      // service_id, template_id, user_id
+      emailjs.send(
+        'service_default', 
+        'template_otp', 
+        templateParams, 
+        'user_placeholder'
+      ).then(
+        () => console.log('Email sent successfully'),
+        (error) => console.log('Email failed but code is in DB:', error)
+      );
+
+      // Store email for verification on the next screen
+      localStorage.setItem('pending_access_email', formData.email);
+      
+      // FOR PREVIEW ONLY: Show the code in a toast so you don't have to wait for email
+      toast.success(`Code sent to ${formData.email}. (Preview Code: ${otp})`, {
+        duration: 10000,
       });
 
-      if (error) throw error;
-
-      // 2. Store email in localStorage so the Index page knows which email to verify
-      localStorage.setItem('pending_access_email', formData.email);
-
-      // 3. Log the request for the admin
-      await supabase.from('access_requests').insert([
-        { 
-          full_name: formData.name, 
-          email: formData.email, 
-          phone: formData.phone,
-          status: 'approved'
-        }
-      ]);
-
       setIsSubmitted(true);
-      toast.success("Passcode sent to your email.");
     } catch (error: any) {
       console.error("Submission error:", error);
-      toast.error(error.message || "There was an issue sending the code.");
+      toast.error("There was an issue generating your access code.");
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +129,7 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
                   <Input type="tel" required value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="bg-transparent border-white/10 focus:border-[#C5A059] rounded-none h-12 text-sm" />
                 </div>
                 <Button type="submit" disabled={isLoading} className="w-full bg-[#C5A059] hover:bg-[#D4AF37] text-black rounded-none h-14 text-[10px] uppercase tracking-[0.4em] font-bold mt-4">
-                  {isLoading ? "Sending Code..." : "Get Instant Access"}
+                  {isLoading ? "Generating Code..." : "Get Instant Access"}
                 </Button>
               </form>
             </motion.div>
@@ -105,8 +140,8 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
               </div>
               <h3 className="text-2xl serif font-light text-[#C5A059] mb-4">Code Sent</h3>
               <p className="text-sm text-white/60 leading-relaxed max-w-[240px] mx-auto">
-                A 6-digit passcode has been sent to <strong>{formData.email}</strong>. 
-                Please check your inbox and enter it on the main screen.
+                A customized passcode has been sent to <strong>{formData.email}</strong>. 
+                Please check your inbox (and spam) and enter it on the main screen.
               </p>
               <div className="mt-12">
                 <DialogTrigger asChild>

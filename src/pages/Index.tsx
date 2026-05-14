@@ -25,38 +25,41 @@ const Index = ({ onStartTransition }: IndexProps) => {
     setIsVerifying(true);
 
     try {
-      // 1. Check for Admin Override
+      // 1. Admin Override
       if (passcode === 'anubhuti_admin') {
         localStorage.setItem('anubhuti_access', 'true');
         proceed();
         return;
       }
 
-      // 2. Verify Supabase OTP
+      // 2. Verify Custom OTP from Database
       const email = localStorage.getItem('pending_access_email');
       
       if (!email) {
-        toast.error("Please request access first to receive a code.", {
-          style: { background: '#0A0A0A', color: '#C5A059', border: '1px solid rgba(197, 160, 89, 0.2)' }
-        });
+        toast.error("Please request access first.");
         setIsVerifying(false);
         return;
       }
 
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: passcode,
-        type: 'email'
-      });
+      if (supabase) {
+        const { data, error } = await supabase
+          .from('access_codes')
+          .select('*')
+          .eq('email', email)
+          .eq('code', passcode)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-      if (error) {
-        toast.error("Invalid or expired passcode.", {
-          style: { background: '#0A0A0A', color: '#C5A059', border: '1px solid rgba(197, 160, 89, 0.2)' }
-        });
-        setIsVerifying(false);
-      } else {
-        localStorage.setItem('anubhuti_access', 'true');
-        proceed();
+        if (error || !data || data.length === 0) {
+          toast.error("Invalid or expired passcode.", {
+            style: { background: '#0A0A0A', color: '#C5A059', border: '1px solid rgba(197, 160, 89, 0.2)' }
+          });
+          setIsVerifying(false);
+        } else {
+          localStorage.setItem('anubhuti_access', 'true');
+          proceed();
+        }
       }
     } catch (err) {
       console.error(err);
