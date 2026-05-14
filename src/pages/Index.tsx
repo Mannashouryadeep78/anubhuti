@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { SutraKnot } from '@/components/SutraKnot';
@@ -25,44 +25,52 @@ const Index = ({ onStartTransition }: IndexProps) => {
     setIsVerifying(true);
 
     try {
-      let success = false;
-
+      // 1. Check for Admin Override
       if (passcode === 'anubhuti_admin') {
-        success = true;
-      } else if (supabase) {
-        const { data } = await supabase
-          .from('access_codes')
-          .select('*')
-          .eq('code', passcode)
-          .gt('expires_at', new Date().toISOString())
-          .single();
-
-        if (data) success = true;
-      } else {
-        if (passcode === '1234') success = true;
+        localStorage.setItem('anubhuti_access', 'true');
+        proceed();
+        return;
       }
 
-      if (success) {
-        localStorage.setItem('anubhuti_access', 'true');
-        onStartTransition();
-        setIsNavigating(true);
-        
-        // Navigate to the next page after 4 seconds
-        // This leaves 1 second of video playback on the new page
-        setTimeout(() => {
-          navigate('/archive');
-        }, 4000);
-      } else {
+      // 2. Verify Supabase OTP
+      const email = localStorage.getItem('pending_access_email');
+      
+      if (!email) {
+        toast.error("Please request access first to receive a code.", {
+          style: { background: '#0A0A0A', color: '#C5A059', border: '1px solid rgba(197, 160, 89, 0.2)' }
+        });
+        setIsVerifying(false);
+        return;
+      }
+
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: passcode,
+        type: 'email'
+      });
+
+      if (error) {
         toast.error("Invalid or expired passcode.", {
           style: { background: '#0A0A0A', color: '#C5A059', border: '1px solid rgba(197, 160, 89, 0.2)' }
         });
         setIsVerifying(false);
+      } else {
+        localStorage.setItem('anubhuti_access', 'true');
+        proceed();
       }
     } catch (err) {
       console.error(err);
       toast.error("Verification failed.");
       setIsVerifying(false);
     }
+  };
+
+  const proceed = () => {
+    onStartTransition();
+    setIsNavigating(true);
+    setTimeout(() => {
+      navigate('/archive');
+    }, 4000);
   };
 
   return (
