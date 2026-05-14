@@ -20,12 +20,11 @@ import emailjs from 'emailjs-com';
 
 /** 
  * ⚠️ ACTION REQUIRED: 
- * Replace these placeholders with your actual keys from https://dashboard.emailjs.com/
- * Without these, the email will NOT be sent.
+ * Replace the remaining placeholders with your actual keys from https://dashboard.emailjs.com/
  */
-const EMAILJS_SERVICE_ID = "service_id"; 
-const EMAILJS_TEMPLATE_ID = "template_id";
-const EMAILJS_PUBLIC_KEY = "public_key";
+const EMAILJS_SERVICE_ID = "service_bo901y7"; 
+const EMAILJS_TEMPLATE_ID = "template_id"; // Still needs to be replaced
+const EMAILJS_PUBLIC_KEY = "public_key";   // Still needs to be replaced
 
 interface RequestAccessModalProps {
   trigger: React.ReactNode;
