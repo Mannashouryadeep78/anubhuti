@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { SutraKnot } from '@/components/SutraKnot';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
+import { ArrowLeft } from 'lucide-react';
 
 const STATE_DATA: Record<string, any> = {
   sthira: {
@@ -103,14 +104,8 @@ const StateDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#F5F2ED]">
-      <nav className="fixed top-0 left-0 w-full p-8 flex justify-between items-center z-50">
-        <Link to="/archive" className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-primary">
-          Back to Archive
-        </Link>
-        <SutraKnot className="w-6 h-6 text-primary/20" />
-      </nav>
-
       <div className="flex flex-col lg:flex-row min-h-screen">
+        {/* Image Section */}
         <div className="w-full lg:w-1/2 h-[60vh] lg:h-screen sticky top-0 overflow-hidden bg-black">
           <motion.img 
             initial={{ scale: 1.1, opacity: 0 }}
@@ -120,9 +115,27 @@ const StateDetail = () => {
             alt={state.name}
             className="w-full h-full object-cover grayscale"
           />
+          {/* Back Link Overlay for Desktop */}
+          <Link 
+            to="/archive" 
+            className="absolute top-8 left-8 z-10 flex items-center space-x-2 text-[10px] uppercase tracking-[0.3em] text-white/60 hover:text-white transition-colors"
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Archive</span>
+          </Link>
         </div>
 
+        {/* Content Section */}
         <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 md:px-24 py-24 space-y-16">
+          {/* Mobile Back Link */}
+          <Link 
+            to="/archive" 
+            className="lg:hidden flex items-center space-x-2 text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-primary transition-colors mb-8"
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Archive</span>
+          </Link>
+
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}

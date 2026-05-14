@@ -8,7 +8,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { ShoppingBag, X, Trash2 } from 'lucide-react';
+import { ShoppingBag, Trash2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -20,7 +20,10 @@ const CartDrawer = () => {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <button className="relative p-2 hover:opacity-70 transition-opacity">
+        <button 
+          className="relative p-2 hover:opacity-70 transition-opacity z-[60]"
+          aria-label="Open Cart"
+        >
           <ShoppingBag size={20} strokeWidth={1.5} />
           {cart.length > 0 && (
             <span className="absolute top-0 right-0 bg-[#C5A059] text-black text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
@@ -29,7 +32,10 @@ const CartDrawer = () => {
           )}
         </button>
       </SheetTrigger>
-      <SheetContent className="bg-[#0A0A0A] border-l border-white/10 text-white w-full sm:max-w-md flex flex-col">
+      <SheetContent 
+        side="right"
+        className="bg-[#0A0A0A] border-l border-white/10 text-white w-full sm:max-w-md flex flex-col z-[100]"
+      >
         <SheetHeader className="border-b border-white/10 pb-6">
           <SheetTitle className="text-2xl serif font-light text-[#C5A059]">Your Selection</SheetTitle>
         </SheetHeader>
