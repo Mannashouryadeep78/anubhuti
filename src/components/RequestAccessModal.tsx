@@ -47,7 +47,8 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
       // 1. Generate a custom 6-digit OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 24);
+      // Updated to 72 hours as requested
+      expiresAt.setHours(expiresAt.getHours() + 72);
 
       // 2. Save the code to the database for verification
       if (supabase) {
@@ -163,7 +164,7 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
               <div className="flex items-start gap-3 bg-white/5 p-4 text-left mb-8 border border-white/5">
                 <AlertCircle className="text-[#C5A059] w-4 h-4 mt-0.5 shrink-0" />
                 <p className="text-[10px] text-white/40 leading-relaxed uppercase tracking-wider">
-                  Please check your inbox and spam folder. Use the code on the main screen to enter the archive.
+                  Please check your inbox and spam folder. Use the code on the main screen to enter the archive. It will remain valid for 72 hours.
                 </p>
               </div>
 
