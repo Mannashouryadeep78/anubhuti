@@ -60,11 +60,12 @@ const TransitionOverlay = ({ show, onComplete }: TransitionOverlayProps) => {
           */}
           <video 
             autoPlay 
-            muted
-            playsInline
+            loop 
+            muted 
+            playsInline 
             className="w-full h-full object-cover mix-blend-screen opacity-60"
           >
-            <source src="/src/assets/transition.mp4" type="video/mp4" />
+            <source src="/transition.mp4" type="video/mp4" />
           </video>
         </motion.div>
       )}
