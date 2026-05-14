@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Mail, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Mail, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -35,7 +35,6 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
 
     try {
       // 1. Send OTP via Supabase Auth
-      // This sends a 6-digit code directly to the user's email.
       const { error } = await supabase.auth.signInWithOtp({
         email: formData.email.trim().toLowerCase(),
         options: {
@@ -58,10 +57,7 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
         }
       ]);
 
-      // FOR TESTING: Since real emails can sometimes be delayed or filtered,
-      // we show a success message and remind them to check spam.
-      toast.success("Passcode sent. Please check your inbox and spam folder.");
-      
+      toast.success("Passcode sent. Please check your inbox.");
       setIsSubmitted(true);
     } catch (error: any) {
       console.error("OTP Error:", error);
@@ -87,15 +83,32 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <Label className="text-[10px] uppercase tracking-widest text-white/60">Full Name</Label>
-                  <Input required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="bg-transparent border-white/10 focus:border-[#C5A059] rounded-none h-12 text-sm" />
+                  <Input 
+                    required 
+                    value={formData.name} 
+                    onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                    className="bg-transparent border-white/10 focus:border-[#C5A059] rounded-none h-12 text-sm" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] uppercase tracking-widest text-white/60">Email Address</Label>
-                  <Input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="bg-transparent border-white/10 focus:border-[#C5A059] rounded-none h-12 text-sm" />
+                  <Input 
+                    type="email" 
+                    required 
+                    value={formData.email} 
+                    onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                    className="bg-transparent border-white/10 focus:border-[#C5A059] rounded-none h-12 text-sm" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] uppercase tracking-widest text-white/60">Phone Number</Label>
-                  <Input type="tel" required value={formData.phoneonChange={(e) => setFormData({...formData, phone: e.target.value})} className="bg-transparent border-white/10 focus:border-[#C5A059] rounded-none h-12 text-sm" />
+                  <Input 
+                    type="tel" 
+                    required 
+                    value={formData.phone} 
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})} 
+                    className="bg-transparent border-white/10 focus:border-[#C5A059] rounded-none h-12 text-sm" 
+                  />
                 </div>
                 <Button type="submit" disabled={isLoading} className="w-full bg-[#C5A059] hover:bg-[#D4AF37] text-black rounded-none h-14 text-[10px] uppercase tracking-[0.4em] font-bold mt-4">
                   {isLoading ? "Sending Code..." : "Get Instant Access"}
