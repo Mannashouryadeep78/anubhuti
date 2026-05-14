@@ -17,6 +17,7 @@ import OrderHistory from "./pages/OrderHistory";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import TransitionOverlay from "./components/TransitionOverlay";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { CartProvider } from "./context/CartContext";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   return (
+    <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <CartProvider>
         <TooltipProvider>
@@ -62,7 +64,9 @@ const App = () => {
                   } />
                   <Route path="/checkout" element={
                     <ProtectedRoute>
-                      <Checkout />
+                      <ErrorBoundary>
+                        <Checkout />
+                      </ErrorBoundary>
                     </ProtectedRoute>
                   } />
                   <Route path="/orders" element={
@@ -79,6 +83,7 @@ const App = () => {
         </TooltipProvider>
       </CartProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

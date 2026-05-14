@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Lock, Menu, X, LogOut } from 'lucide-react';
+import { Lock, Menu, X, LogOut, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CartDrawer from './CartDrawer';
 import { toast } from 'sonner';
@@ -58,12 +58,6 @@ const Navbar = () => {
               >
                 Archive
               </Link>
-              <Link 
-                to="/orders" 
-                className="text-[11px] font-bold tracking-[0.2em] hover:text-gray-400 transition-colors uppercase"
-              >
-                Orders
-              </Link>
             </>
           )}
 
@@ -86,9 +80,12 @@ const Navbar = () => {
         </div>
 
         {/* Desktop Right Side Links */}
-        <div className="hidden md:flex items-center space-x-8">
+        <div className="hidden md:flex items-center space-x-6">
           {hasAccess && (
             <>
+              <Link to="/orders" className="relative p-2 hover:opacity-70 transition-opacity z-[60]" aria-label="Order History">
+                <Package size={20} strokeWidth={1.5} />
+              </Link>
               <CartDrawer />
               <button 
                 onClick={handleExit}
@@ -109,7 +106,14 @@ const Navbar = () => {
 
         {/* Mobile Menu Toggle */}
         <div className="md:hidden flex items-center space-x-4 ml-auto">
-          {hasAccess && <CartDrawer />}
+          {hasAccess && (
+            <>
+              <Link to="/orders" className="text-white p-1" aria-label="Order History">
+                <Package size={20} strokeWidth={1.5} />
+              </Link>
+              <CartDrawer />
+            </>
+          )}
           <button 
             onClick={() => setIsOpen(true)}
             className="text-white p-1"

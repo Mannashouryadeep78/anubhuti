@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -14,11 +14,12 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
 const CartDrawer = () => {
-  const { cart, removeFromCart, total } = useCart();
+  const { cart, removeFromCart, updateQuantity, total } = useCart();
   const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <button 
           className="relative p-2 hover:opacity-70 transition-opacity z-[60]"
@@ -42,8 +43,18 @@ const CartDrawer = () => {
 
         <div className="flex-grow overflow-y-auto py-8 space-y-8">
           {cart.length === 0 ? (
-            <div className="text-center py-20 space-y-4">
+            <div className="text-center py-20 space-y-8">
               <p className="text-sm text-white/40 italic">The archive is empty.</p>
+              <Button 
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate('/orders');
+                }}
+                variant="outline" 
+                className="w-full border-white/20 hover:bg-white/10 text-white rounded-none h-12 text-[10px] uppercase tracking-[0.4em]"
+              >
+                View Order History
+              </Button>
             </div>
           ) : (
             cart.map((item) => (
@@ -54,7 +65,11 @@ const CartDrawer = () => {
                 <div className="flex-grow flex flex-col justify-between py-1">
                   <div>
                     <h4 className="text-lg serif">{item.name}</h4>
-                    <p className="text-[10px] uppercase tracking-widest text-white/40 mt-1">Qty: {item.quantity}</p>
+                    <div className="flex items-center gap-3 mt-2 border border-white/20 w-max px-2 py-0.5">
+                      <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="text-white/40 hover:text-white w-4 h-4 flex items-center justify-center text-xs">-</button>
+                      <span className="text-[10px] text-white w-2 text-center">{item.quantity}</span>
+                      <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="text-white/40 hover:text-white w-4 h-4 flex items-center justify-center text-xs">+</button>
+                    </div>
                   </div>
                   <div className="flex justify-between items-end">
                     <span className="text-sm font-light">₹{item.price.toLocaleString()}</span>
@@ -72,16 +87,29 @@ const CartDrawer = () => {
         </div>
 
         {cart.length > 0 && (
-          <div className="border-t border-white/10 pt-8 space-y-6">
-            <div className="flex justify-between items-end">
+          <div className="border-t border-white/10 pt-8 space-y-4">
+            <div className="flex justify-between items-end pb-4">
               <span className="text-[10px] uppercase tracking-[0.3em] text-white/40">Subtotal</span>
               <span className="text-xl serif">₹{total.toLocaleString()}</span>
             </div>
             <Button 
-              onClick={() => navigate('/checkout')}
+              onClick={() => {
+                setIsOpen(false);
+                navigate('/checkout');
+              }}
               className="w-full bg-[#C5A059] hover:bg-[#D4AF37] text-black rounded-none h-14 text-[10px] uppercase tracking-[0.4em] font-bold"
             >
               Proceed to Checkout
+            </Button>
+            <Button 
+              onClick={() => {
+                setIsOpen(false);
+                navigate('/orders');
+              }}
+              variant="outline"
+              className="w-full bg-transparent border-white/20 hover:bg-white/5 text-white rounded-none h-12 text-[10px] uppercase tracking-[0.4em]"
+            >
+              Order History
             </Button>
           </div>
         )}
