@@ -19,8 +19,9 @@ import { toast } from 'sonner';
 import emailjs from 'emailjs-com';
 
 /** 
- * ACTION REQUIRED: Replace these placeholders with your actual EmailJS keys 
- * from https://dashboard.emailjs.com/
+ * ⚠️ ACTION REQUIRED: 
+ * Replace these placeholders with your actual keys from https://dashboard.emailjs.com/
+ * Without these, the email will NOT be sent.
  */
 const EMAILJS_SERVICE_ID = "service_id"; 
 const EMAILJS_TEMPLATE_ID = "template_id";
@@ -80,7 +81,6 @@ const RequestAccessModal = ({ trigger }: RequestAccessModalProps) => {
 
       // 4. Send the email via EmailJS
       if (EMAILJS_PUBLIC_KEY === "public_key") {
-        // If keys are still placeholders, we skip the API call to avoid the 400 error
         console.warn("EmailJS keys are not configured. Skipping email send.");
         toast.info("EmailJS keys not set. Check browser console for the code.");
       } else {
