@@ -5,12 +5,13 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { SutraKnot } from '@/components/SutraKnot';
 import RequestAccessModal from '@/components/RequestAccessModal';
-import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 interface IndexProps {
   onStartTransition: () => void;
 }
+
+const API_BASE = "/api/v1";
 
 const Index = ({ onStartTransition }: IndexProps) => {
   const [passcode, setPasscode] = useState('');
@@ -25,47 +26,33 @@ const Index = ({ onStartTransition }: IndexProps) => {
     setIsVerifying(true);
 
     try {
-      // 1. Admin Override
-      if (passcode === 'anubhuti_admin') {
-        localStorage.setItem('anubhuti_access', 'true');
-        proceed();
-        return;
+      // 1. Call Backend Auth Service
+      const response = await fetch(`${API_BASE}/auth/verify-passcode`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          code: passcode,
+          email: localStorage.getItem('pending_access_email')
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Invalid or expired passcode.");
       }
 
-      // 2. Verify Passcode from Database
-      if (supabase) {
-        const email = localStorage.getItem('pending_access_email');
-        
-        // We search for the code. If we have the email in local storage, we use it to be precise.
-        // Otherwise, we search globally for a valid matching code.
-        let query = supabase
-          .from('access_codes')
-          .select('*')
-          .eq('code', passcode)
-          .gt('expires_at', new Date().toISOString())
-          .order('created_at', { ascending: false });
-
-        if (email) {
-          query = query.eq('email', email);
-        }
-
-        const { data, error } = await query.limit(1);
-
-        if (error || !data || data.length === 0) {
-          toast.error("Invalid or expired passcode.", {
-            style: { background: '#0A0A0A', color: '#C5A059', border: '1px solid rgba(197, 160, 89, 0.2)' }
-          });
-          setIsVerifying(false);
-        } else {
-          localStorage.setItem('anubhuti_access', 'true');
-          // Store the email associated with this code for future reference
-          localStorage.setItem('pending_access_email', data[0].email);
-          proceed();
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Verification failed.");
+      // 2. Store JWT tokens issued by the User Service
+      localStorage.setItem('anubhuti_access', 'true');
+      localStorage.setItem('anubhuti_token', data.accessToken);
+      localStorage.setItem('anubhuti_refresh_token', data.refreshToken);
+      localStorage.setItem('anubhuti_user_id', data.userId);
+      
+      proceed();
+    } catch (err: any) {
+      toast.error(err.message, {
+        style: { background: '#0A0A0A', color: '#C5A059', border: '1px solid rgba(197, 160, 89, 0.2)' }
+      });
       setIsVerifying(false);
     }
   };
