@@ -182,7 +182,7 @@ const Checkout = () => {
   };
 
   const finalizeOrder = () => {
-    toast.success("Amex Network Auth Code returned. Funds soft-held.", { duration: 3000 });
+    toast.success("Razorpay payment captured. Funds secured.", { duration: 3000 });
     setTimeout(() => {
       const order = {
         id: Math.random().toString(36).substr(2, 9).toUpperCase(),
@@ -304,65 +304,79 @@ const Checkout = () => {
                 </motion.div>
               )}
 
-              {/* PHASE 2: PAYMENT ENTRY (AMEX BLACK) */}
+              {/* PHASE 2: PAYMENT ENTRY (RAZORPAY) */}
               {phase === 2 && (
                 <motion.div key="phase2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-12 w-full">
                   <header className="space-y-4">
                     <h1 className="text-4xl serif font-light flex items-center gap-4">
                       <ShieldCheck className="text-green-700" />
-                      Secure Vault
+                      Secure Payment
                     </h1>
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Phase 4: PCI-DSS Tokenization</p>
+                    <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Phase 2: Razorpay PCI-DSS Vault</p>
                   </header>
 
                   <form onSubmit={handleStartPaymentProcess} className="space-y-8">
-                    {/* AMEX BLACK CARD UI */}
-                    <div className="w-full h-56 bg-gradient-to-br from-gray-900 to-black rounded-xl p-8 relative overflow-hidden shadow-2xl border border-gray-800">
-                      <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
-                      <div className="flex justify-between items-start text-gray-400 mb-8 relative z-10">
-                        <CreditCard className="w-8 h-8" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest">American Express</span>
-                      </div>
-                      
-                      <div className="space-y-4 relative z-10">
-                        <Input required placeholder="Card Number (PAN)" value={card.pan} onChange={e => setCard({...card, pan: e.target.value})} className="bg-transparent border-b border-gray-700 focus:border-gray-400 rounded-none h-10 text-white font-mono text-lg tracking-widest placeholder:text-gray-600 px-0 outline-none shadow-none ring-0 focus-visible:ring-0" maxLength={19} />
-                        <div className="flex gap-8">
-                          <Input required placeholder="MM/YY" value={card.expiry} onChange={e => setCard({...card, expiry: e.target.value})} className="bg-transparent border-b border-gray-700 focus:border-gray-400 rounded-none h-10 text-white font-mono text-sm tracking-widest placeholder:text-gray-600 w-24 px-0 outline-none shadow-none ring-0 focus-visible:ring-0" maxLength={5} />
-                          <Input required placeholder="CVV" value={card.cvv} onChange={e => setCard({...card, cvv: e.target.value})} className="bg-transparent border-b border-gray-700 focus:border-gray-400 rounded-none h-10 text-white font-mono text-sm tracking-widest placeholder:text-gray-600 w-16 px-0 outline-none shadow-none ring-0 focus-visible:ring-0" maxLength={4} type="password" />
+                    {/* RAZORPAY CARD UI */}
+                    <div className="w-full h-56 bg-gradient-to-br from-[#072654] to-[#3395FF] rounded-xl p-8 relative overflow-hidden shadow-2xl border border-blue-900">
+                      <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)' }}></div>
+                      <div className="flex justify-between items-start mb-8 relative z-10">
+                        <CreditCard className="w-8 h-8 text-white/80" />
+                        {/* Razorpay wordmark */}
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 bg-white rounded-sm flex items-center justify-center">
+                            <div className="w-2.5 h-2.5 bg-[#3395FF] rounded-sm" />
+                          </div>
+                          <span className="text-[11px] font-bold tracking-widest text-white">RAZORPAY</span>
                         </div>
                       </div>
-                      <div className="absolute bottom-6 right-8 text-gray-600 text-xs font-bold uppercase tracking-widest">Centurion</div>
+
+                      <div className="space-y-4 relative z-10">
+                        <Input required placeholder="Card Number (PAN)" value={card.pan} onChange={e => setCard({...card, pan: e.target.value})} className="bg-transparent border-b border-white/40 focus:border-white rounded-none h-10 text-white font-mono text-lg tracking-widest placeholder:text-white/30 px-0 outline-none shadow-none ring-0 focus-visible:ring-0" maxLength={19} />
+                        <div className="flex gap-8">
+                          <Input required placeholder="MM/YY" value={card.expiry} onChange={e => setCard({...card, expiry: e.target.value})} className="bg-transparent border-b border-white/40 focus:border-white rounded-none h-10 text-white font-mono text-sm tracking-widest placeholder:text-white/30 w-24 px-0 outline-none shadow-none ring-0 focus-visible:ring-0" maxLength={5} />
+                          <Input required placeholder="CVV" value={card.cvv} onChange={e => setCard({...card, cvv: e.target.value})} className="bg-transparent border-b border-white/40 focus:border-white rounded-none h-10 text-white font-mono text-sm tracking-widest placeholder:text-white/30 w-16 px-0 outline-none shadow-none ring-0 focus-visible:ring-0" maxLength={4} type="password" />
+                        </div>
+                      </div>
+                      <div className="absolute bottom-5 right-8 text-white/20 text-[10px] font-bold uppercase tracking-widest">Secured Vault</div>
                     </div>
 
-                    <Button type="submit" className="w-full bg-black text-white hover:bg-gray-900 rounded-none h-16 text-[10px] uppercase tracking-[0.5em] font-bold flex items-center justify-center gap-2">
+                    <Button type="submit" className="w-full bg-[#3395FF] hover:bg-[#2276D9] text-white rounded-none h-16 text-[10px] uppercase tracking-[0.5em] font-bold flex items-center justify-center gap-2">
                       <Lock className="w-4 h-4" />
-                      Tokenize & Authenticate
+                      Pay Securely with Razorpay
                     </Button>
                     <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-green-600" />
-                      Raw PAN never touches application servers
+                      256-bit SSL · PCI DSS Level 1 · Raw PAN never stored
                     </p>
                   </form>
                 </motion.div>
               )}
 
-              {/* PHASE 3: 3-D SECURE SAFEKEY */}
+              {/* PHASE 3: RAZORPAY OTP VERIFICATION */}
               {phase === 3 && (
                 <motion.div key="phase3" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }} className="flex flex-col items-center justify-center min-h-[400px] space-y-8 w-full">
-                  <div className="bg-white p-12 shadow-2xl border border-primary/10 max-w-sm w-full text-center space-y-8">
-                    <Fingerprint className="w-16 h-16 mx-auto text-blue-600" />
-                    <div className="space-y-2">
-                      <h2 className="text-2xl serif font-bold">Amex SafeKey®</h2>
-                      <p className="text-xs text-muted-foreground">3-D Secure 2.0 Challenge</p>
+                  <div className="bg-white p-12 shadow-2xl border border-blue-100 max-w-sm w-full text-center space-y-8">
+                    {/* Razorpay logo */}
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-[#3395FF] rounded-lg flex items-center justify-center">
+                        <div className="w-4 h-4 bg-white rounded-sm" />
+                      </div>
+                      <span className="text-lg font-bold tracking-widest text-[#072654]">RAZORPAY</span>
                     </div>
-                    <p className="text-sm">Please enter the One-Time Password sent to your registered device to verify your identity.</p>
-                    
+                    <Fingerprint className="w-14 h-14 mx-auto text-[#3395FF]" />
+                    <div className="space-y-2">
+                      <h2 className="text-2xl serif font-bold text-[#072654]">Razorpay Secure OTP</h2>
+                      <p className="text-xs text-muted-foreground">3-D Secure 2.0 · SMS / Email Challenge</p>
+                    </div>
+                    <p className="text-sm text-gray-600">Please enter the One-Time Password sent to your registered mobile number to verify your identity.</p>
+
                     <form onSubmit={handleVerifyOTP} className="space-y-6">
-                      <Input required placeholder="Enter OTP" value={otp} onChange={e => setOtp(e.target.value)} className="text-center text-2xl tracking-[0.5em] h-14 bg-gray-50 border-gray-200" maxLength={6} />
-                      <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-none h-12 uppercase tracking-widest text-xs font-bold">
-                        Verify Identity
+                      <Input required placeholder="Enter OTP" value={otp} onChange={e => setOtp(e.target.value)} className="text-center text-2xl tracking-[0.5em] h-14 bg-gray-50 border-[#3395FF]/30 focus:border-[#3395FF]" maxLength={6} />
+                      <Button type="submit" className="w-full bg-[#3395FF] hover:bg-[#2276D9] text-white rounded-none h-12 uppercase tracking-widest text-xs font-bold">
+                        Verify & Pay
                       </Button>
                     </form>
+                    <p className="text-[10px] text-gray-400">Secured by Razorpay · PCI DSS Level 1</p>
                   </div>
                 </motion.div>
               )}
@@ -400,8 +414,8 @@ const Checkout = () => {
                   <h2 className="text-4xl serif">Order Confirmed</h2>
                   <div className="space-y-2 text-sm uppercase tracking-widest text-muted-foreground">
                     <p>Phase 5: Payment Captured</p>
-                    <p>Settled with Amex</p>
-                    <p>Event logged to Event Bus</p>
+                    <p>Settled via Razorpay</p>
+                    <p>Event logged to Kafka</p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-4 mt-4">
                     <Button
