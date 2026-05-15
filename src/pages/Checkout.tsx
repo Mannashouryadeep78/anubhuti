@@ -9,11 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { 
-  ShieldCheck, CreditCard, Lock, Fingerprint, Loader2, CheckCircle2, 
-  ChevronRight, Server, MapPin, Search, Smartphone, Landmark,
-  Wallet, ChevronLeft, QrCode, Info
+  ShieldCheck, CreditCard, Lock, Loader2, CheckCircle2, 
+  MapPin, Search, ChevronLeft, Info
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRazorpay } from '@/hooks/useRazorpay';
 
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -42,47 +42,18 @@ const MapController = ({ center, onLocationSelect }: { center: [number, number],
   return null;
 };
 
+// ⚠️ YOUR RAZORPAY TEST KEY ID 
+// Get this from: Dashboard -> Settings -> API Keys
+const RAZORPAY_KEY_ID = "rzp_test_YourActualKeyHere"; 
+
 const Checkout = () => {
   const { cart, total, clearCart } = useCart();
   const navigate = useNavigate();
+  const isRzpReady = useRazorpay();
   
   const [phase, setPhase] = useState(1);
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'upi' | 'netbanking' | null>(null);
-  const [upiSubMethod, setUpiSubMethod] = useState<'vpa' | 'qr'>('vpa');
   const [shipping, setShipping] = useState({ name: '', email: '', address: '', landmark: '', city: '', zip: '' });
-  const [card, setCard] = useState({ pan: '', expiry: '', cvv: '' });
-  const [upiId, setUpiId] = useState('');
-  const [otp, setOtp] = useState('');
-  const [fraudLogs, setFraudLogs] = useState<string[]>([]);
-  const [timer, setTimer] = useState(300); // 5 minute timer for QR
-  
-  const fraudIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
-  const timerIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
-
-  React.useEffect(() => {
-    if (upiSubMethod === 'qr' && phase === 2) {
-      timerIntervalRef.current = setInterval(() => {
-        setTimer(prev => (prev > 0 ? prev - 1 : 0));
-      }, 1000);
-    } else {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    }
-    return () => {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    };
-  }, [upiSubMethod, phase]);
-
-  React.useEffect(() => {
-    return () => {
-      if (fraudIntervalRef.current) clearInterval(fraudIntervalRef.current);
-    };
-  }, []);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Map state
   const [mapCenter, setMapCenter] = useState<[number, number]>([28.6139, 77.2090]);
@@ -142,38 +113,64 @@ const Checkout = () => {
     }
   };
 
-  const finalizeOrder = () => {
-    toast.success("Payment captured. Order logged.");
-    setTimeout(() => {
-      const order = {
-        id: Math.random().toString(36).substr(2, 9).toUpperCase(),
-        date: new Date().toLocaleDateString(),
-        items: cart,
-        total: total,
-        status: 'CONFIRMED',
-        shipping: shipping,
-        method: paymentMethod?.toUpperCase()
-      };
-      const existing = JSON.parse(localStorage.getItem('anubhuti_orders') || '[]');
-      localStorage.setItem('anubhuti_orders', JSON.stringify([order, ...existing]));
-      clearCart();
-      setPhase(5);
-    }, 1000);
-  };
+  const handlePayment = () => {
+    if (!isRzpReady) {
+      toast.error("Razorpay SDK is still loading...");
+      return;
+    }
 
-  const runFraudEngine = () => {
-    setPhase(4);
-    const logs = ["Velocity checks... [PASS]", "Device ID match... [SAFE]", "Geo-IP check... [VALID]", "Risk score: 0.02 [LOW]"];
-    let i = 0;
-    fraudIntervalRef.current = setInterval(() => {
-      if (i < logs.length) {
-        setFraudLogs(prev => [...prev, logs[i]!]);
-        i++;
-      } else {
-        clearInterval(fraudIntervalRef.current!);
-        finalizeOrder();
+    if (RAZORPAY_KEY_ID === "rzp_test_YourActualKeyHere") {
+      toast.error("Please update RAZORPAY_KEY_ID in the code to your actual test key.");
+      return;
+    }
+
+    setIsProcessing(true);
+
+    const options = {
+      key: RAZORPAY_KEY_ID,
+      amount: total * 100, // Amount in paise
+      currency: "INR",
+      name: "ANUBHUTI ARCHIVE",
+      description: "Sacred Selection Purchase",
+      image: "https://svjnrkzeqgqxcrjrrmcg.supabase.co/storage/v1/object/public/assets/logo-gold.png",
+      handler: function (response: any) {
+        // This is called on SUCCESS
+        toast.success(`Payment Successful: ${response.razorpay_payment_id}`);
+        const order = {
+          id: `ANB-${response.razorpay_payment_id.slice(-6).toUpperCase()}`,
+          date: new Date().toLocaleDateString(),
+          items: cart,
+          total: total,
+          status: 'CONFIRMED',
+          shipping: shipping,
+          paymentId: response.razorpay_payment_id
+        };
+        const existing = JSON.parse(localStorage.getItem('anubhuti_orders') || '[]');
+        localStorage.setItem('anubhuti_orders', JSON.stringify([order, ...existing]));
+        clearCart();
+        setPhase(3); // Go to success screen
+        setIsProcessing(false);
+      },
+      prefill: {
+        name: shipping.name,
+        email: shipping.email,
+        contact: "9999999999"
+      },
+      notes: {
+        address: shipping.address
+      },
+      theme: {
+        color: "#0A0A0A"
+      },
+      modal: {
+        ondismiss: function() {
+          setIsProcessing(false);
+        }
       }
-    }, 800);
+    };
+
+    const rzp = new (window as any).Razorpay(options);
+    rzp.open();
   };
 
   return (
@@ -181,11 +178,10 @@ const Checkout = () => {
       <div className="max-w-6xl mx-auto">
         
         {/* Progress Bar */}
-        <div className="flex justify-center mb-16 space-x-8 text-[9px] uppercase tracking-widest text-muted-foreground overflow-x-auto whitespace-nowrap border-b border-primary/5 pb-8">
+        <div className="flex justify-center mb-16 space-x-8 text-[9px] uppercase tracking-widest text-muted-foreground border-b border-primary/5 pb-8">
           <span className={phase >= 1 ? "text-primary font-bold" : ""}>1. Transit</span>
-          <span className={phase >= 2 ? "text-primary font-bold" : ""}>2. Method</span>
-          <span className={phase >= 3 ? "text-primary font-bold" : ""}>3. Auth</span>
-          <span className={phase >= 4 ? "text-primary font-bold" : ""}>4. Settlement</span>
+          <span className={phase >= 2 ? "text-primary font-bold" : ""}>2. Settlement</span>
+          <span className={phase >= 3 ? "text-primary font-bold" : ""}>3. Manifested</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-24">
@@ -219,226 +215,51 @@ const Checkout = () => {
                       </div>
                       <Input required placeholder="Address Line 1" value={shipping.address} onChange={e => setShipping({...shipping, address: e.target.value})} className="bg-transparent border-primary/10 rounded-none h-12" />
                     </div>
-                    <Button type="submit" className="w-full bg-primary text-white rounded-none h-16 text-[10px] uppercase tracking-[0.5em] font-bold">Proceed to Payment</Button>
+                    <Button type="submit" className="w-full bg-primary text-white rounded-none h-16 text-[10px] uppercase tracking-[0.5em] font-bold">Review Settlement</Button>
                   </form>
                 </motion.div>
               )}
 
-              {/* PHASE 2: PAYMENT METHOD SELECTION */}
-              {phase === 2 && !paymentMethod && (
-                <motion.div key="p2-select" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-12">
-                  <header className="space-y-2">
-                    <h1 className="text-4xl serif font-light">Select Method</h1>
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Supported by Razorpay Secure</p>
-                  </header>
-                  <div className="grid grid-cols-1 gap-4">
-                    <button onClick={() => setPaymentMethod('upi')} className="flex items-center justify-between p-8 border border-primary/10 hover:border-primary/40 hover:bg-white transition-all group">
-                      <div className="flex items-center gap-6">
-                        <div className="w-12 h-12 bg-primary/5 flex items-center justify-center rounded-full"><Smartphone size={20} /></div>
-                        <div className="text-left">
-                          <p className="text-sm serif font-bold">UPI (GPay / PhonePe / Paytm)</p>
-                          <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Instant settlement via VPA or QR</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                    </button>
-
-                    <button onClick={() => setPaymentMethod('card')} className="flex items-center justify-between p-8 border border-primary/10 hover:border-primary/40 hover:bg-white transition-all group">
-                      <div className="flex items-center gap-6">
-                        <div className="w-12 h-12 bg-primary/5 flex items-center justify-center rounded-full"><CreditCard size={20} /></div>
-                        <div className="text-left">
-                          <p className="text-sm serif font-bold">Cards (Credit / Debit)</p>
-                          <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Visa, Mastercard, AMEX, RuPay</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                    </button>
-
-                    <button onClick={() => setPaymentMethod('netbanking')} className="flex items-center justify-between p-8 border border-primary/10 hover:border-primary/40 hover:bg-white transition-all group">
-                      <div className="flex items-center gap-6">
-                        <div className="w-12 h-12 bg-primary/5 flex items-center justify-center rounded-full"><Landmark size={20} /></div>
-                        <div className="text-left">
-                          <p className="text-sm serif font-bold">Netbanking</p>
-                          <p className="text-[9px] uppercase tracking-widest text-muted-foreground">All major Indian banks</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                    </button>
-                  </div>
-                  <button onClick={() => setPhase(1)} className="flex items-center gap-2 text-[9px] uppercase tracking-widest text-muted-foreground hover:text-primary"><ChevronLeft size={12} /> Back to Shipping</button>
-                </motion.div>
-              )}
-
-              {/* PHASE 2.1: UPI FLOW */}
-              {phase === 2 && paymentMethod === 'upi' && (
-                <motion.div key="p2-upi" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12">
-                   <button onClick={() => setPaymentMethod(null)} className="flex items-center gap-2 text-[9px] uppercase tracking-widest text-muted-foreground mb-8"><ChevronLeft size={12} /> Change Payment Method</button>
+              {/* PHASE 2: REVIEW & TRIGGER RAZORPAY */}
+              {phase === 2 && (
+                <motion.div key="p2" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
+                   <button onClick={() => setPhase(1)} className="flex items-center gap-2 text-[9px] uppercase tracking-widest text-muted-foreground mb-8"><ChevronLeft size={12} /> Back to Shipping</button>
                    <header className="space-y-2">
-                    <h2 className="text-3xl serif font-light">UPI Transaction</h2>
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Secure payment via GPay, PhonePe or any UPI app</p>
+                    <h2 className="text-4xl serif font-light">Review & Pay</h2>
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Secure Settlement via Razorpay Gateway</p>
                   </header>
                   
-                  <div className="flex border border-primary/10 p-1 mb-8">
-                    <button 
-                      onClick={() => setUpiSubMethod('vpa')}
-                      className={`flex-1 py-3 text-[9px] uppercase tracking-widest transition-all ${upiSubMethod === 'vpa' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-primary/5'}`}
-                    >
-                      Pay via VPA
-                    </button>
-                    <button 
-                      onClick={() => setUpiSubMethod('qr')}
-                      className={`flex-1 py-3 text-[9px] uppercase tracking-widest transition-all ${upiSubMethod === 'qr' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-primary/5'}`}
-                    >
-                      Scan QR Code
-                    </button>
-                  </div>
-
-                  <AnimatePresence mode="wait">
-                    {upiSubMethod === 'vpa' ? (
-                      <motion.div key="vpa" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8 bg-white p-8 border border-primary/5">
-                        <div className="flex justify-center gap-8 opacity-40">
-                          <div className="flex flex-col items-center gap-2"><div className="w-12 h-12 bg-gray-50 flex items-center justify-center border border-gray-100"><img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" className="w-8 h-8" alt="GPay" /></div><span className="text-[8px] tracking-widest uppercase">GPay</span></div>
-                          <div className="flex flex-col items-center gap-2"><div className="w-12 h-12 bg-gray-50 flex items-center justify-center border border-gray-100"><img src="https://img.icons8.com/color/48/phone-pe.png" className="w-8 h-8" alt="PhonePe" /></div><span className="text-[8px] tracking-widest uppercase">PhonePe</span></div>
-                        </div>
-                        <div className="space-y-4">
-                          <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Virtual Payment Address (VPA)</Label>
-                          <Input placeholder="username@okicici" value={upiId} onChange={e => setUpiId(e.target.value)} className="bg-transparent border-primary/10 rounded-none text-center text-xl h-14" />
-                          <Button onClick={runFraudEngine} disabled={!upiId.includes('@')} className="w-full bg-[#5F259F] text-white rounded-none h-14 text-[10px] uppercase tracking-widest font-bold">Verify & Pay</Button>
-                        </div>
-                      </motion.div>
-                    ) : (
-                      <motion.div key="qr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8 bg-white p-12 border border-primary/5 flex flex-col items-center text-center">
-                        <div className="relative p-6 border-2 border-primary/10 rounded-xl mb-4 group">
-                          <div className="absolute inset-0 bg-[#C5A059]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <div className="w-48 h-48 bg-white flex items-center justify-center border-4 border-black/5 relative z-10">
-                            {/* Stylized QR Representation */}
-                            <svg viewBox="0 0 100 100" className="w-full h-full opacity-80">
-                                <rect x="10" y="10" width="20" height="20" fill="currentColor" />
-                                <rect x="70" y="10" width="20" height="20" fill="currentColor" />
-                                <rect x="10" y="70" width="20" height="20" fill="currentColor" />
-                                <rect x="15" y="15" width="10" height="10" fill="white" />
-                                <rect x="75" y="15" width="10" height="10" fill="white" />
-                                <rect x="15" y="75" width="10" height="10" fill="white" />
-                                {Array.from({ length: 50 }).map((_, i) => (
-                                    <rect 
-                                        key={i} 
-                                        x={Math.random() * 80 + 10} 
-                                        y={Math.random() * 80 + 10} 
-                                        width="4" 
-                                        height="4" 
-                                        fill="currentColor" 
-                                        opacity={Math.random()} 
-                                    />
-                                ))}
-                            </svg>
-                          </div>
-                          <div className="absolute -top-3 -left-3 bg-primary text-white p-2 rounded-full shadow-lg"><QrCode size={16} /></div>
-                        </div>
-
-                        <div className="space-y-4">
-                            <p className="text-xl serif">Scan & Pay ₹{total.toLocaleString()}</p>
-                            <div className="flex flex-col items-center gap-2">
-                                <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Expires in <span className="text-red-500 font-bold">{formatTime(timer)}</span></span>
-                                <div className="h-1 w-32 bg-gray-100 overflow-hidden"><motion.div className="h-full bg-primary" animate={{ width: `${(timer / 300) * 100}%` }} transition={{ duration: 1 }} /></div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 w-full pt-4 opacity-60">
-                            <div className="flex items-center gap-2 text-[9px] uppercase tracking-widest"><div className="w-6 h-6 border border-gray-100 p-1"><img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" alt="GPay" /></div> Open GPay</div>
-                            <div className="flex items-center gap-2 text-[9px] uppercase tracking-widest"><div className="w-6 h-6 border border-gray-100 p-1"><img src="https://img.icons8.com/color/48/phone-pe.png" alt="PhonePe" /></div> Open PhonePe</div>
-                        </div>
-
-                        <div className="pt-8 w-full">
-                            <Button onClick={runFraudEngine} className="w-full bg-primary text-white rounded-none h-14 text-[10px] uppercase tracking-widest font-bold">Simulate Successful Scan</Button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              )}
-
-              {/* PHASE 2.2: CARD FLOW (AMEX SUPPORTED) */}
-              {phase === 2 && paymentMethod === 'card' && (
-                <motion.div key="p2-card" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12">
-                  <button onClick={() => setPaymentMethod(null)} className="flex items-center gap-2 text-[9px] uppercase tracking-widest text-muted-foreground mb-8"><ChevronLeft size={12} /> Change Payment Method</button>
-                  <header className="space-y-2">
-                    <h2 className="text-3xl serif font-light">Card Authorization</h2>
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">PCI-DSS Tokenized Gateway</p>
-                  </header>
-                  <div className="space-y-8">
-                    {/* Dynamic Card Display */}
-                    <div className={`w-full h-56 rounded-xl p-8 relative overflow-hidden shadow-2xl transition-all duration-700 ${card.pan.startsWith('3') ? 'bg-gradient-to-br from-[#006fcf] to-[#00345d]' : 'bg-gradient-to-br from-[#072654] to-[#3395FF]'}`}>
-                       <div className="flex justify-between items-start mb-12">
-                          <CreditCard className="text-white/80" />
-                          {card.pan.startsWith('3') ? (
-                            <div className="bg-white px-2 py-1 rounded-sm"><span className="text-[10px] font-black text-[#006fcf] tracking-tighter">AMERICAN EXPRESS</span></div>
-                          ) : (
-                            <div className="flex items-center gap-1.5"><div className="w-4 h-4 bg-white rounded-full opacity-40" /><div className="w-4 h-4 bg-white rounded-full -ml-2" /></div>
-                          )}
-                       </div>
-                       <div className="space-y-6">
-                          <Input placeholder="CARD NUMBER" value={card.pan} onChange={e => setCard({...card, pan: e.target.value})} className="bg-transparent border-none p-0 text-white font-mono text-xl tracking-[0.2em] focus-visible:ring-0 shadow-none h-fit" maxLength={16} />
-                          <div className="flex gap-12">
-                            <Input placeholder="MM/YY" value={card.expiry} onChange={e => setCard({...card, expiry: e.target.value})} className="bg-transparent border-none p-0 text-white font-mono text-sm tracking-widest focus-visible:ring-0 shadow-none w-16 h-fit" maxLength={5} />
-                            <Input placeholder="CVV" type="password" value={card.cvv} onChange={e => setCard({...card, cvv: e.target.value})} className="bg-transparent border-none p-0 text-white font-mono text-sm tracking-widest focus-visible:ring-0 shadow-none w-12 h-fit" maxLength={4} />
-                          </div>
-                       </div>
+                  <div className="bg-white p-12 border border-primary/5 space-y-8">
+                    <div className="space-y-2">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Shipping To</span>
+                        <p className="text-sm serif leading-relaxed">{shipping.name}<br/>{shipping.address}</p>
                     </div>
-                    <Button onClick={() => setPhase(3)} disabled={card.pan.length < 15} className="w-full bg-[#3395FF] text-white rounded-none h-14 text-[10px] uppercase tracking-widest font-bold">Finalize with 3-D Secure</Button>
+
+                    <div className="p-6 bg-primary/5 border border-primary/10 flex items-start gap-4">
+                        <Info size={16} className="text-[#C5A059] shrink-0 mt-0.5" />
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground leading-relaxed">
+                            Clicking the button below will open the secure Razorpay modal. You can use your test credentials to simulate UPI, Cards, or Netbanking.
+                        </p>
+                    </div>
+
+                    <Button 
+                        onClick={handlePayment} 
+                        disabled={isProcessing || !isRzpReady}
+                        className="w-full bg-[#0A0A0A] text-white rounded-none h-16 text-[10px] uppercase tracking-[0.5em] font-bold relative overflow-hidden"
+                    >
+                        {isProcessing ? (
+                            <span className="flex items-center gap-3"><Loader2 className="animate-spin" size={16} /> Opening Gateway...</span>
+                        ) : (
+                            "Initiate Secure Payment"
+                        )}
+                    </Button>
                   </div>
                 </motion.div>
               )}
 
-              {/* PHASE 2.3: NETBANKING FLOW */}
-              {phase === 2 && paymentMethod === 'netbanking' && (
-                <motion.div key="p2-bank" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12">
-                  <button onClick={() => setPaymentMethod(null)} className="flex items-center gap-2 text-[9px] uppercase tracking-widest text-muted-foreground mb-8"><ChevronLeft size={12} /> Change Payment Method</button>
-                  <header className="space-y-2">
-                    <h2 className="text-3xl serif font-light">Bank Redirect</h2>
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Select your primary financial institution</p>
-                  </header>
-                  <div className="grid grid-cols-2 gap-4">
-                    {['HDFC Bank', 'ICICI Bank', 'SBI', 'Axis Bank', 'KOTAK', 'Yes Bank'].map(bank => (
-                      <button key={bank} onClick={runFraudEngine} className="p-6 border border-primary/5 hover:border-primary/20 hover:bg-white text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary transition-all">{bank}</button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-
-              {/* PHASE 3: OTP */}
+              {/* PHASE 3: SUCCESS */}
               {phase === 3 && (
-                <motion.div key="p3" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center min-h-[400px] text-center space-y-12">
-                   <div className="p-12 bg-white border border-blue-50 space-y-8 max-w-sm">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="w-6 h-6 bg-[#3395FF] rounded-sm" /><span className="font-bold tracking-widest text-[#072654]">RAZORPAY</span>
-                      </div>
-                      <h3 className="text-xl serif">Identity Verification</h3>
-                      <p className="text-xs text-muted-foreground leading-relaxed">Enter the 6-digit code sent to your banking device for secure settlement.</p>
-                      <Input placeholder="OTP" value={otp} onChange={e => setOtp(e.target.value)} className="text-center text-2xl h-14 bg-gray-50" maxLength={6} />
-                      <Button onClick={runFraudEngine} className="w-full bg-[#3395FF] text-white rounded-none h-12 uppercase tracking-widest text-xs font-bold">Confirm Payment</Button>
-                   </div>
-                </motion.div>
-              )}
-
-              {/* PHASE 4: FRAUD ENGINE */}
-              {phase === 4 && (
-                <motion.div key="p4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8 py-12">
-                   <div className="bg-black text-green-400 font-mono p-12 space-y-4 rounded-sm shadow-2xl relative overflow-hidden">
-                      <div className="flex items-center gap-4 mb-8 border-b border-green-900 pb-4">
-                        <Loader2 className="animate-spin" size={16} />
-                        <span className="text-[10px] uppercase tracking-widest">Distributed Ledger Settlement</span>
-                      </div>
-                      {fraudLogs.map((log, i) => (
-                        <div key={i} className="text-[11px] uppercase tracking-widest opacity-80">{`> ${log}`}</div>
-                      ))}
-                      <div className="absolute bottom-0 left-0 h-1 bg-green-500 w-full animate-pulse" />
-                   </div>
-                </motion.div>
-              )}
-
-              {/* PHASE 5: SUCCESS */}
-              {phase === 5 && (
-                <motion.div key="p5" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center space-y-12 flex flex-col items-center justify-center min-h-[400px]">
+                <motion.div key="p3" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center space-y-12 flex flex-col items-center justify-center min-h-[400px]">
                    <CheckCircle2 className="w-24 h-24 text-green-600" />
                    <h2 className="text-4xl serif">Order Manifested</h2>
                    <div className="space-y-4">
@@ -468,7 +289,7 @@ const Checkout = () => {
             </div>
             <div className="flex items-center gap-3 text-[9px] uppercase tracking-widest text-muted-foreground pt-12 border-t border-primary/10">
                <ShieldCheck size={14} className="text-green-700" />
-               <span>Secured by Razorpay PCI-DSS Level 1</span>
+               <span>Official Razorpay PCI-DSS SDK</span>
             </div>
           </div>
 
