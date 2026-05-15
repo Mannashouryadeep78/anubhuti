@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { 
   ShieldCheck, CreditCard, Lock, Fingerprint, Loader2, CheckCircle2, 
   ChevronRight, Server, MapPin, Search, Smartphone, Landmark,
-  Wallet, ChevronLeft
+  Wallet, ChevronLeft, QrCode, Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -48,21 +48,41 @@ const Checkout = () => {
   
   const [phase, setPhase] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'upi' | 'netbanking' | null>(null);
+  const [upiSubMethod, setUpiSubMethod] = useState<'vpa' | 'qr'>('vpa');
   const [shipping, setShipping] = useState({ name: '', email: '', address: '', landmark: '', city: '', zip: '' });
   const [card, setCard] = useState({ pan: '', expiry: '', cvv: '' });
   const [upiId, setUpiId] = useState('');
   const [otp, setOtp] = useState('');
   const [fraudLogs, setFraudLogs] = useState<string[]>([]);
+  const [timer, setTimer] = useState(300); // 5 minute timer for QR
   
   const fraudIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
-  const fraudTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+
+  React.useEffect(() => {
+    if (upiSubMethod === 'qr' && phase === 2) {
+      timerIntervalRef.current = setInterval(() => {
+        setTimer(prev => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    } else {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    }
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [upiSubMethod, phase]);
 
   React.useEffect(() => {
     return () => {
       if (fraudIntervalRef.current) clearInterval(fraudIntervalRef.current);
-      if (fraudTimeoutRef.current) clearTimeout(fraudTimeoutRef.current);
     };
   }, []);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // Map state
   const [mapCenter, setMapCenter] = useState<[number, number]>([28.6139, 77.2090]);
@@ -161,9 +181,9 @@ const Checkout = () => {
       <div className="max-w-6xl mx-auto">
         
         {/* Progress Bar */}
-        <div className="flex justify-center mb-16 space-x-8 text-[9px] uppercase tracking-widest text-muted-foreground overflow-x-auto whitespace-nowrap">
+        <div className="flex justify-center mb-16 space-x-8 text-[9px] uppercase tracking-widest text-muted-foreground overflow-x-auto whitespace-nowrap border-b border-primary/5 pb-8">
           <span className={phase >= 1 ? "text-primary font-bold" : ""}>1. Transit</span>
-          <span className={phase >= 2 ? "text-primary font-bold" : ""}>2. Payment Method</span>
+          <span className={phase >= 2 ? "text-primary font-bold" : ""}>2. Method</span>
           <span className={phase >= 3 ? "text-primary font-bold" : ""}>3. Auth</span>
           <span className={phase >= 4 ? "text-primary font-bold" : ""}>4. Settlement</span>
         </div>
@@ -181,8 +201,8 @@ const Checkout = () => {
                   </header>
                   <form onSubmit={(e) => { e.preventDefault(); setPhase(2); }} className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2"><Label className="text-[10px] uppercase tracking-widest">Name</Label><Input required value={shipping.name} onChange={e => setShipping({...shipping, name: e.target.value})} className="bg-transparent border-primary/10 rounded-none" /></div>
-                      <div className="space-y-2"><Label className="text-[10px] uppercase tracking-widest">Email</Label><Input type="email" required value={shipping.email} onChange={e => setShipping({...shipping, email: e.target.value})} className="bg-transparent border-primary/10 rounded-none" /></div>
+                      <div className="space-y-2"><Label className="text-[10px] uppercase tracking-widest">Name</Label><Input required value={shipping.name} onChange={e => setShipping({...shipping, name: e.target.value})} className="bg-transparent border-primary/10 rounded-none h-12" /></div>
+                      <div className="space-y-2"><Label className="text-[10px] uppercase tracking-widest">Email</Label><Input type="email" required value={shipping.email} onChange={e => setShipping({...shipping, email: e.target.value})} className="bg-transparent border-primary/10 rounded-none h-12" /></div>
                     </div>
                     <div className="space-y-4">
                       <div className="flex gap-2">
@@ -217,7 +237,7 @@ const Checkout = () => {
                         <div className="w-12 h-12 bg-primary/5 flex items-center justify-center rounded-full"><Smartphone size={20} /></div>
                         <div className="text-left">
                           <p className="text-sm serif font-bold">UPI (GPay / PhonePe / Paytm)</p>
-                          <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Instant settlement via VPA</p>
+                          <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Instant settlement via VPA or QR</p>
                         </div>
                       </div>
                       <ChevronRight className="text-muted-foreground group-hover:translate-x-1 transition-transform" />
@@ -255,19 +275,85 @@ const Checkout = () => {
                    <button onClick={() => setPaymentMethod(null)} className="flex items-center gap-2 text-[9px] uppercase tracking-widest text-muted-foreground mb-8"><ChevronLeft size={12} /> Change Payment Method</button>
                    <header className="space-y-2">
                     <h2 className="text-3xl serif font-light">UPI Transaction</h2>
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Pay using GPay, PhonePe or any UPI app</p>
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Secure payment via GPay, PhonePe or any UPI app</p>
                   </header>
-                  <div className="space-y-8 bg-white p-8 border border-primary/5">
-                    <div className="flex justify-center gap-8 opacity-60">
-                      <div className="flex flex-col items-center gap-2"><div className="w-12 h-12 bg-gray-50 flex items-center justify-center border border-gray-100"><img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" className="w-8 h-8" alt="GPay" /></div><span className="text-[8px] tracking-widest uppercase">GPay</span></div>
-                      <div className="flex flex-col items-center gap-2"><div className="w-12 h-12 bg-gray-50 flex items-center justify-center border border-gray-100"><img src="https://img.icons8.com/color/48/phone-pe.png" className="w-8 h-8" alt="PhonePe" /></div><span className="text-[8px] tracking-widest uppercase">PhonePe</span></div>
-                    </div>
-                    <div className="space-y-4">
-                      <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Virtual Payment Address (VPA)</Label>
-                      <Input placeholder="username@okicici" value={upiId} onChange={e => setUpiId(e.target.value)} className="bg-transparent border-primary/10 rounded-none text-center text-xl h-14" />
-                      <Button onClick={runFraudEngine} disabled={!upiId.includes('@')} className="w-full bg-[#5F259F] text-white rounded-none h-14 text-[10px] uppercase tracking-widest font-bold">Verify & Pay</Button>
-                    </div>
+                  
+                  <div className="flex border border-primary/10 p-1 mb-8">
+                    <button 
+                      onClick={() => setUpiSubMethod('vpa')}
+                      className={`flex-1 py-3 text-[9px] uppercase tracking-widest transition-all ${upiSubMethod === 'vpa' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-primary/5'}`}
+                    >
+                      Pay via VPA
+                    </button>
+                    <button 
+                      onClick={() => setUpiSubMethod('qr')}
+                      className={`flex-1 py-3 text-[9px] uppercase tracking-widest transition-all ${upiSubMethod === 'qr' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-primary/5'}`}
+                    >
+                      Scan QR Code
+                    </button>
                   </div>
+
+                  <AnimatePresence mode="wait">
+                    {upiSubMethod === 'vpa' ? (
+                      <motion.div key="vpa" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8 bg-white p-8 border border-primary/5">
+                        <div className="flex justify-center gap-8 opacity-40">
+                          <div className="flex flex-col items-center gap-2"><div className="w-12 h-12 bg-gray-50 flex items-center justify-center border border-gray-100"><img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" className="w-8 h-8" alt="GPay" /></div><span className="text-[8px] tracking-widest uppercase">GPay</span></div>
+                          <div className="flex flex-col items-center gap-2"><div className="w-12 h-12 bg-gray-50 flex items-center justify-center border border-gray-100"><img src="https://img.icons8.com/color/48/phone-pe.png" className="w-8 h-8" alt="PhonePe" /></div><span className="text-[8px] tracking-widest uppercase">PhonePe</span></div>
+                        </div>
+                        <div className="space-y-4">
+                          <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Virtual Payment Address (VPA)</Label>
+                          <Input placeholder="username@okicici" value={upiId} onChange={e => setUpiId(e.target.value)} className="bg-transparent border-primary/10 rounded-none text-center text-xl h-14" />
+                          <Button onClick={runFraudEngine} disabled={!upiId.includes('@')} className="w-full bg-[#5F259F] text-white rounded-none h-14 text-[10px] uppercase tracking-widest font-bold">Verify & Pay</Button>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div key="qr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8 bg-white p-12 border border-primary/5 flex flex-col items-center text-center">
+                        <div className="relative p-6 border-2 border-primary/10 rounded-xl mb-4 group">
+                          <div className="absolute inset-0 bg-[#C5A059]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="w-48 h-48 bg-white flex items-center justify-center border-4 border-black/5 relative z-10">
+                            {/* Stylized QR Representation */}
+                            <svg viewBox="0 0 100 100" className="w-full h-full opacity-80">
+                                <rect x="10" y="10" width="20" height="20" fill="currentColor" />
+                                <rect x="70" y="10" width="20" height="20" fill="currentColor" />
+                                <rect x="10" y="70" width="20" height="20" fill="currentColor" />
+                                <rect x="15" y="15" width="10" height="10" fill="white" />
+                                <rect x="75" y="15" width="10" height="10" fill="white" />
+                                <rect x="15" y="75" width="10" height="10" fill="white" />
+                                {Array.from({ length: 50 }).map((_, i) => (
+                                    <rect 
+                                        key={i} 
+                                        x={Math.random() * 80 + 10} 
+                                        y={Math.random() * 80 + 10} 
+                                        width="4" 
+                                        height="4" 
+                                        fill="currentColor" 
+                                        opacity={Math.random()} 
+                                    />
+                                ))}
+                            </svg>
+                          </div>
+                          <div className="absolute -top-3 -left-3 bg-primary text-white p-2 rounded-full shadow-lg"><QrCode size={16} /></div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <p className="text-xl serif">Scan & Pay ₹{total.toLocaleString()}</p>
+                            <div className="flex flex-col items-center gap-2">
+                                <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Expires in <span className="text-red-500 font-bold">{formatTime(timer)}</span></span>
+                                <div className="h-1 w-32 bg-gray-100 overflow-hidden"><motion.div className="h-full bg-primary" animate={{ width: `${(timer / 300) * 100}%` }} transition={{ duration: 1 }} /></div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 w-full pt-4 opacity-60">
+                            <div className="flex items-center gap-2 text-[9px] uppercase tracking-widest"><div className="w-6 h-6 border border-gray-100 p-1"><img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" alt="GPay" /></div> Open GPay</div>
+                            <div className="flex items-center gap-2 text-[9px] uppercase tracking-widest"><div className="w-6 h-6 border border-gray-100 p-1"><img src="https://img.icons8.com/color/48/phone-pe.png" alt="PhonePe" /></div> Open PhonePe</div>
+                        </div>
+
+                        <div className="pt-8 w-full">
+                            <Button onClick={runFraudEngine} className="w-full bg-primary text-white rounded-none h-14 text-[10px] uppercase tracking-widest font-bold">Simulate Successful Scan</Button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               )}
 
