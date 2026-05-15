@@ -49,6 +49,12 @@ const Navbar = () => {
           >
             About
           </Link>
+          <Link 
+            to="/architecture" 
+            className="text-[11px] font-bold tracking-[0.2em] hover:text-gray-400 transition-colors uppercase"
+          >
+            System
+          </Link>
           
           {hasAccess && (
             <>
@@ -143,6 +149,7 @@ const Navbar = () => {
 
             <div className="flex flex-col items-center space-y-12 text-center px-6">
               <Link to="/ledger" className="text-4xl serif uppercase tracking-tight">About</Link>
+              <Link to="/architecture" className="text-4xl serif uppercase tracking-tight">System</Link>
               {hasAccess && (
                 <>
                   <Link to="/archive" className="text-4xl serif uppercase tracking-tight">Archive</Link>

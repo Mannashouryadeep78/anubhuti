@@ -14,6 +14,7 @@ import AdminPortal from "./pages/AdminPortal";
 import AdminLogin from "./pages/AdminLogin";
 import Checkout from "./pages/Checkout";
 import OrderHistory from "./pages/OrderHistory";
+import Architecture from "./pages/Architecture";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import TransitionOverlay from "./components/TransitionOverlay";
@@ -74,6 +75,7 @@ const App = () => {
                       <OrderHistory />
                     </ProtectedRoute>
                   } />
+                  <Route path="/architecture" element={<Architecture />} />
                   
                   <Route path="*" element={<NotFound />} />
                 </Routes>
