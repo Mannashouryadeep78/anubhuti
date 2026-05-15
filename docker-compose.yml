@@ -1,0 +1,681 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ANUBHUTI — Production-grade microservices stack
+# Services: Zookeeper, Kafka (3 brokers), Redis Cluster, PostgreSQL (3 DBs),
+#           API Gateway, User Service, Order Service, Inventory Service,
+#           Payment Worker, Notification Worker, Inventory Worker
+# ─────────────────────────────────────────────────────────────────────────────
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  networks:
+    - anubhuti-net
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-healthcheck-defaults: &hc-defaults
+  interval: 15s
+  timeout: 5s
+  retries: 5
+  start_period: 30s
+
+# ─── NETWORKS ─────────────────────────────────────────────────────────────────
+networks:
+  anubhuti-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# ─── VOLUMES ──────────────────────────────────────────────────────────────────
+volumes:
+  zookeeper-data:
+  zookeeper-log:
+  kafka-broker-1-data:
+  kafka-broker-2-data:
+  kafka-broker-3-data:
+  redis-data:
+  postgres-users-data:
+  postgres-orders-data:
+  postgres-inventory-data:
+
+services:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ZOOKEEPER — Kafka cluster coordinator
+  # ═══════════════════════════════════════════════════════════════════════════
+  zookeeper:
+    <<: *service-defaults
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: anubhuti-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_MAX_CLIENT_CNXNS: 200
+      # Enable JMX for monitoring
+      KAFKA_JMX_PORT: 9999
+      KAFKA_JMX_HOSTNAME: zookeeper
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-log:/var/lib/zookeeper/log
+    healthcheck:
+      <<: *hc-defaults
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+    ports:
+      - "2181:2181"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # KAFKA BROKER 1
+  # ═══════════════════════════════════════════════════════════════════════════
+  kafka-broker-1:
+    <<: *service-defaults
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: anubhuti-kafka-1
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-broker-1:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      # Retention: 7 days, 10GB per topic
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_RETENTION_BYTES: 10737418240
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      # Performance tuning
+      KAFKA_NUM_PARTITIONS: 6
+      KAFKA_NUM_NETWORK_THREADS: 8
+      KAFKA_NUM_IO_THREADS: 16
+      KAFKA_SOCKET_SEND_BUFFER_BYTES: 102400
+      KAFKA_SOCKET_RECEIVE_BUFFER_BYTES: 102400
+      KAFKA_SOCKET_REQUEST_MAX_BYTES: 104857600
+      KAFKA_JMX_PORT: 9997
+      KAFKA_JMX_HOSTNAME: kafka-broker-1
+    volumes:
+      - kafka-broker-1-data:/var/lib/kafka/data
+    ports:
+      - "9092:9092"
+    healthcheck:
+      <<: *hc-defaults
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # KAFKA BROKER 2
+  # ═══════════════════════════════════════════════════════════════════════════
+  kafka-broker-2:
+    <<: *service-defaults
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: anubhuti-kafka-2
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-broker-2:29093,EXTERNAL://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_RETENTION_BYTES: 10737418240
+      KAFKA_NUM_PARTITIONS: 6
+      KAFKA_NUM_NETWORK_THREADS: 8
+      KAFKA_NUM_IO_THREADS: 16
+      KAFKA_JMX_PORT: 9998
+      KAFKA_JMX_HOSTNAME: kafka-broker-2
+    volumes:
+      - kafka-broker-2-data:/var/lib/kafka/data
+    ports:
+      - "9093:9093"
+    healthcheck:
+      <<: *hc-defaults
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9093"]
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # KAFKA BROKER 3
+  # ═══════════════════════════════════════════════════════════════════════════
+  kafka-broker-3:
+    <<: *service-defaults
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: anubhuti-kafka-3
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-broker-3:29094,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_RETENTION_BYTES: 10737418240
+      KAFKA_NUM_PARTITIONS: 6
+      KAFKA_NUM_NETWORK_THREADS: 8
+      KAFKA_NUM_IO_THREADS: 16
+      KAFKA_JMX_PORT: 9996
+      KAFKA_JMX_HOSTNAME: kafka-broker-3
+    volumes:
+      - kafka-broker-3-data:/var/lib/kafka/data
+    ports:
+      - "9094:9094"
+    healthcheck:
+      <<: *hc-defaults
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9094"]
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # KAFKA TOPIC INITIALISER — runs once to create all topics
+  # ═══════════════════════════════════════════════════════════════════════════
+  kafka-init:
+    <<: *service-defaults
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: anubhuti-kafka-init
+    depends_on:
+      kafka-broker-1:
+        condition: service_healthy
+      kafka-broker-2:
+        condition: service_healthy
+      kafka-broker-3:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "
+      echo 'Waiting for Kafka...'
+      sleep 10
+
+      # order.created — 6 partitions for parallel order ingestion
+      kafka-topics --bootstrap-server kafka-broker-1:29092 --create --if-not-exists \
+        --topic order.created --partitions 6 --replication-factor 3 \
+        --config retention.ms=604800000 --config min.insync.replicas=2
+
+      # payment.captured — 3 partitions (lower volume, critical)
+      kafka-topics --bootstrap-server kafka-broker-1:29092 --create --if-not-exists \
+        --topic payment.captured --partitions 3 --replication-factor 3 \
+        --config retention.ms=604800000 --config min.insync.replicas=2
+
+      # inventory.reserved — 6 partitions
+      kafka-topics --bootstrap-server kafka-broker-1:29092 --create --if-not-exists \
+        --topic inventory.reserved --partitions 6 --replication-factor 3 \
+        --config retention.ms=3600000 --config min.insync.replicas=2
+
+      # inventory.reserve.failed — dead-letter topic
+      kafka-topics --bootstrap-server kafka-broker-1:29092 --create --if-not-exists \
+        --topic inventory.reserve.failed --partitions 3 --replication-factor 3 \
+        --config retention.ms=604800000
+
+      # order.cancelled — 3 partitions
+      kafka-topics --bootstrap-server kafka-broker-1:29092 --create --if-not-exists \
+        --topic order.cancelled --partitions 3 --replication-factor 3 \
+        --config retention.ms=604800000 --config min.insync.replicas=2
+
+      # notification.send — 6 partitions (high volume)
+      kafka-topics --bootstrap-server kafka-broker-1:29092 --create --if-not-exists \
+        --topic notification.send --partitions 6 --replication-factor 3 \
+        --config retention.ms=86400000
+
+      # payment.refund.initiated
+      kafka-topics --bootstrap-server kafka-broker-1:29092 --create --if-not-exists \
+        --topic payment.refund.initiated --partitions 3 --replication-factor 3 \
+        --config retention.ms=604800000 --config min.insync.replicas=2
+
+      # dead-letter queue for failed messages
+      kafka-topics --bootstrap-server kafka-broker-1:29092 --create --if-not-exists \
+        --topic anubhuti.dlq --partitions 3 --replication-factor 3 \
+        --config retention.ms=2592000000
+
+      echo 'All topics created.'
+      kafka-topics --bootstrap-server kafka-broker-1:29092 --list
+      "
+    restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # KAFKA UI — Visual topic browser (dev/staging only)
+  # ═══════════════════════════════════════════════════════════════════════════
+  kafka-ui:
+    <<: *service-defaults
+    image: provectuslabs/kafka-ui:latest
+    container_name: anubhuti-kafka-ui
+    depends_on:
+      - kafka-broker-1
+      - kafka-broker-2
+      - kafka-broker-3
+    environment:
+      KAFKA_CLUSTERS_0_NAME: anubhuti
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-broker-1:29092,kafka-broker-2:29093,kafka-broker-3:29094
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    ports:
+      - "8090:8080"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # REDIS — Session store, stock cache, rate limiting, idempotency keys
+  # ═══════════════════════════════════════════════════════════════════════════
+  redis:
+    <<: *service-defaults
+    image: redis:7.2-alpine
+    container_name: anubhuti-redis
+    command: >
+      redis-server
+      --requirepass $${REDIS_PASSWORD:-anubhuti_redis_secret}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+      --appendonly yes
+      --appendfsync everysec
+      --tcp-keepalive 60
+      --timeout 300
+      --hz 15
+      --aof-rewrite-incremental-fsync yes
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      <<: *hc-defaults
+      test: ["CMD", "redis-cli", "-a", "$${REDIS_PASSWORD:-anubhuti_redis_secret}", "ping"]
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # POSTGRESQL — Users DB
+  # ═══════════════════════════════════════════════════════════════════════════
+  postgres-users:
+    <<: *service-defaults
+    image: postgres:16-alpine
+    container_name: anubhuti-postgres-users
+    environment:
+      POSTGRES_DB: anubhuti_users
+      POSTGRES_USER: $${POSTGRES_USER:-anubhuti}
+      POSTGRES_PASSWORD: $${POSTGRES_PASSWORD:-anubhuti_pg_secret}
+      # Performance tuning
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c work_mem=4MB
+      -c maintenance_work_mem=128MB
+      -c wal_buffers=16MB
+      -c checkpoint_completion_target=0.9
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c log_min_duration_statement=500
+    volumes:
+      - postgres-users-data:/var/lib/postgresql/data
+      - ./backend/user-service/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      <<: *hc-defaults
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-anubhuti} -d anubhuti_users"]
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # POSTGRESQL — Orders DB
+  # ═══════════════════════════════════════════════════════════════════════════
+  postgres-orders:
+    <<: *service-defaults
+    image: postgres:16-alpine
+    container_name: anubhuti-postgres-orders
+    environment:
+      POSTGRES_DB: anubhuti_orders
+      POSTGRES_USER: $${POSTGRES_USER:-anubhuti}
+      POSTGRES_PASSWORD: $${POSTGRES_PASSWORD:-anubhuti_pg_secret}
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c work_mem=4MB
+      -c wal_buffers=16MB
+      -c checkpoint_completion_target=0.9
+      -c log_min_duration_statement=500
+    volumes:
+      - postgres-orders-data:/var/lib/postgresql/data
+      - ./backend/order-service/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5433:5432"
+    healthcheck:
+      <<: *hc-defaults
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-anubhuti} -d anubhuti_orders"]
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # POSTGRESQL — Inventory DB
+  # ═══════════════════════════════════════════════════════════════════════════
+  postgres-inventory:
+    <<: *service-defaults
+    image: postgres:16-alpine
+    container_name: anubhuti-postgres-inventory
+    environment:
+      POSTGRES_DB: anubhuti_inventory
+      POSTGRES_USER: $${POSTGRES_USER:-anubhuti}
+      POSTGRES_PASSWORD: $${POSTGRES_PASSWORD:-anubhuti_pg_secret}
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c work_mem=4MB
+      -c wal_buffers=16MB
+      -c checkpoint_completion_target=0.9
+      -c log_min_duration_statement=500
+    volumes:
+      - postgres-inventory-data:/var/lib/postgresql/data
+      - ./backend/inventory-service/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5434:5432"
+    healthcheck:
+      <<: *hc-defaults
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-anubhuti} -d anubhuti_inventory"]
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # API GATEWAY — JWT auth + rate limiting + routing
+  # ═══════════════════════════════════════════════════════════════════════════
+  api-gateway:
+    <<: *service-defaults
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+      target: production
+    container_name: anubhuti-api-gateway
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      JWT_SECRET: $${JWT_SECRET:-change_this_in_production_min_32_chars}
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      REDIS_URL: redis://:$${REDIS_PASSWORD:-anubhuti_redis_secret}@redis:6379
+      USER_SERVICE_URL: http://user-service:3001
+      ORDER_SERVICE_URL: http://order-service:3002
+      INVENTORY_SERVICE_URL: http://inventory-service:3003
+      # Rate limiting: 100 req/min per IP, 1000/min per user
+      RATE_LIMIT_WINDOW_MS: 60000
+      RATE_LIMIT_MAX_ANON: 100
+      RATE_LIMIT_MAX_AUTH: 1000
+      LOG_LEVEL: info
+    ports:
+      - "3000:3000"
+    healthcheck:
+      <<: *hc-defaults
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # USER SERVICE
+  # ═══════════════════════════════════════════════════════════════════════════
+  user-service:
+    <<: *service-defaults
+    build:
+      context: ./backend/user-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: anubhuti-user-service
+    depends_on:
+      postgres-users:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://$${POSTGRES_USER:-anubhuti}:$${POSTGRES_PASSWORD:-anubhuti_pg_secret}@postgres-users:5432/anubhuti_users
+      REDIS_URL: redis://:$${REDIS_PASSWORD:-anubhuti_redis_secret}@redis:6379
+      JWT_SECRET: $${JWT_SECRET:-change_this_in_production_min_32_chars}
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_SECRET: $${JWT_REFRESH_SECRET:-change_this_refresh_secret_min_32}
+      JWT_REFRESH_EXPIRES_IN: 7d
+      SUPABASE_URL: $${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: $${SUPABASE_SERVICE_KEY}
+      KAFKA_BROKERS: kafka-broker-1:29092,kafka-broker-2:29093,kafka-broker-3:29094
+      # Bcrypt rounds: 12 is safe, 14 is paranoid
+      BCRYPT_ROUNDS: 12
+      LOG_LEVEL: info
+    expose:
+      - "3001"
+    healthcheck:
+      <<: *hc-defaults
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ORDER SERVICE
+  # ═══════════════════════════════════════════════════════════════════════════
+  order-service:
+    <<: *service-defaults
+    build:
+      context: ./backend/order-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: anubhuti-order-service
+    depends_on:
+      postgres-orders:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka-broker-1:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_URL: postgresql://$${POSTGRES_USER:-anubhuti}:$${POSTGRES_PASSWORD:-anubhuti_pg_secret}@postgres-orders:5432/anubhuti_orders
+      REDIS_URL: redis://:$${REDIS_PASSWORD:-anubhuti_redis_secret}@redis:6379
+      KAFKA_BROKERS: kafka-broker-1:29092,kafka-broker-2:29093,kafka-broker-3:29094
+      KAFKA_CLIENT_ID: order-service
+      KAFKA_GROUP_ID: order-service-group
+      INVENTORY_SERVICE_URL: http://inventory-service:3003
+      RAZORPAY_KEY_ID: $${RAZORPAY_KEY_ID}
+      RAZORPAY_KEY_SECRET: $${RAZORPAY_KEY_SECRET}
+      RAZORPAY_WEBHOOK_SECRET: $${RAZORPAY_WEBHOOK_SECRET}
+      # Idempotency key TTL: 24h
+      IDEMPOTENCY_KEY_TTL: 86400
+      LOG_LEVEL: info
+    expose:
+      - "3002"
+    healthcheck:
+      <<: *hc-defaults
+      test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # INVENTORY SERVICE
+  # ═══════════════════════════════════════════════════════════════════════════
+  inventory-service:
+    <<: *service-defaults
+    build:
+      context: ./backend/inventory-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: anubhuti-inventory-service
+    depends_on:
+      postgres-inventory:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka-broker-1:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DATABASE_URL: postgresql://$${POSTGRES_USER:-anubhuti}:$${POSTGRES_PASSWORD:-anubhuti_pg_secret}@postgres-inventory:5432/anubhuti_inventory
+      REDIS_URL: redis://:$${REDIS_PASSWORD:-anubhuti_redis_secret}@redis:6379
+      KAFKA_BROKERS: kafka-broker-1:29092,kafka-broker-2:29093,kafka-broker-3:29094
+      KAFKA_CLIENT_ID: inventory-service
+      KAFKA_GROUP_ID: inventory-service-group
+      # Stock cache TTL: 30 seconds
+      STOCK_CACHE_TTL: 30
+      # Reservation TTL: 10 minutes (cart hold)
+      RESERVATION_TTL: 600
+      LOG_LEVEL: info
+    expose:
+      - "3003"
+    healthcheck:
+      <<: *hc-defaults
+      test: ["CMD", "wget", "-qO-", "http://localhost:3003/health"]
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 384M
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PAYMENT WORKER — Consumes payment.captured, updates orders, triggers refunds
+  # ═══════════════════════════════════════════════════════════════════════════
+  payment-worker:
+    <<: *service-defaults
+    build:
+      context: ./backend/kafka-workers
+      dockerfile: Dockerfile.payment
+      target: production
+    container_name: anubhuti-payment-worker
+    depends_on:
+      kafka-broker-1:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      KAFKA_BROKERS: kafka-broker-1:29092,kafka-broker-2:29093,kafka-broker-3:29094
+      KAFKA_CLIENT_ID: payment-worker
+      KAFKA_GROUP_ID: payment-worker-group
+      REDIS_URL: redis://:$${REDIS_PASSWORD:-anubhuti_redis_secret}@redis:6379
+      ORDER_SERVICE_URL: http://order-service:3002
+      RAZORPAY_KEY_ID: $${RAZORPAY_KEY_ID}
+      RAZORPAY_KEY_SECRET: $${RAZORPAY_KEY_SECRET}
+      LOG_LEVEL: info
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # NOTIFICATION WORKER — Consumes events, sends email/SMS/push
+  # ═══════════════════════════════════════════════════════════════════════════
+  notification-worker:
+    <<: *service-defaults
+    build:
+      context: ./backend/kafka-workers
+      dockerfile: Dockerfile.notification
+      target: production
+    container_name: anubhuti-notification-worker
+    depends_on:
+      kafka-broker-1:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      KAFKA_BROKERS: kafka-broker-1:29092,kafka-broker-2:29093,kafka-broker-3:29094
+      KAFKA_CLIENT_ID: notification-worker
+      KAFKA_GROUP_ID: notification-worker-group
+      # Email: use Resend or SendGrid
+      RESEND_API_KEY: $${RESEND_API_KEY}
+      # SMS: use Twilio or MSG91
+      MSG91_AUTH_KEY: $${MSG91_AUTH_KEY}
+      MSG91_SENDER_ID: $${MSG91_SENDER_ID}
+      LOG_LEVEL: info
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # INVENTORY WORKER — Consumes order events, manages stock atomically
+  # ═══════════════════════════════════════════════════════════════════════════
+  inventory-worker:
+    <<: *service-defaults
+    build:
+      context: ./backend/kafka-workers
+      dockerfile: Dockerfile.inventory
+      target: production
+    container_name: anubhuti-inventory-worker
+    depends_on:
+      kafka-broker-1:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres-inventory:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      KAFKA_BROKERS: kafka-broker-1:29092,kafka-broker-2:29093,kafka-broker-3:29094
+      KAFKA_CLIENT_ID: inventory-worker
+      KAFKA_GROUP_ID: inventory-worker-group
+      DATABASE_URL: postgresql://$${POSTGRES_USER:-anubhuti}:$${POSTGRES_PASSWORD:-anubhuti_pg_secret}@postgres-inventory:5432/anubhuti_inventory
+      REDIS_URL: redis://:$${REDIS_PASSWORD:-anubhuti_redis_secret}@redis:6379
+      LOG_LEVEL: info
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PROMETHEUS — Metrics scraper
+  # ═══════════════════════════════════════════════════════════════════════════
+  prometheus:
+    <<: *service-defaults
+    image: prom/prometheus:v2.51.0
+    container_name: anubhuti-prometheus
+    volumes:
+      - ./backend/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # GRAFANA — Dashboards for all services
+  # ═══════════════════════════════════════════════════════════════════════════
+  grafana:
+    <<: *service-defaults
+    image: grafana/grafana:10.4.0
+    container_name: anubhuti-grafana
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: $${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./backend/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3010:3000"
