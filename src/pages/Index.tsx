@@ -18,7 +18,14 @@ const Index = ({ onStartTransition }: IndexProps) => {
   const [passcode, setPasscode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (localStorage.getItem('anubhuti_access') === 'true') {
+      setHasAccess(true);
+    }
+  }, []);
 
   const handleEnter = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,24 +114,34 @@ const Index = ({ onStartTransition }: IndexProps) => {
         </motion.div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5, duration: 1 }} className="w-full max-w-xs space-y-12">
-          <form onSubmit={handleEnter} className="space-y-8">
-            <div className="relative group">
-              <input 
-                type="text" 
-                placeholder="Enter Passcode"
-                value={passcode}
-                onChange={(e) => setPasscode(e.target.value)}
-                disabled={isVerifying}
-                className="w-full bg-transparent border-b border-white/20 py-4 text-center focus:outline-none focus:border-[#C5A059] transition-all duration-700 placeholder:text-white/20 placeholder:uppercase placeholder:tracking-[0.4em] text-sm text-white tracking-[0.5em]"
-              />
+          {hasAccess ? (
+            <div className="flex flex-col items-center">
+              <button onClick={proceed} disabled={isNavigating} className="text-[10px] uppercase tracking-[0.5em] text-white hover:text-[#C5A059] transition-colors font-bold border border-white/20 hover:border-[#C5A059]/50 px-8 py-4 w-full bg-white/5 backdrop-blur-sm">
+                {isNavigating ? "Entering..." : "Return to Archive"}
+              </button>
             </div>
-            <button type="submit" disabled={isVerifying} className="text-[10px] uppercase tracking-[0.5em] text-white/40 hover:text-[#C5A059] transition-colors font-bold">
-              {isVerifying ? (isNavigating ? "Entering..." : "Verifying...") : "Enter the Silence"}
-            </button>
-          </form>
-          <div className="pt-4">
-            <RequestAccessModal trigger={<button className="text-[9px] uppercase tracking-[0.3em] text-[#C5A059]/60 hover:text-[#C5A059] transition-colors border-b border-[#C5A059]/20 pb-1">Request Private Access</button>} />
-          </div>
+          ) : (
+            <>
+              <form onSubmit={handleEnter} className="space-y-8">
+                <div className="relative group">
+                  <input 
+                    type="text" 
+                    placeholder="Enter Passcode"
+                    value={passcode}
+                    onChange={(e) => setPasscode(e.target.value)}
+                    disabled={isVerifying}
+                    className="w-full bg-transparent border-b border-white/20 py-4 text-center focus:outline-none focus:border-[#C5A059] transition-all duration-700 placeholder:text-white/20 placeholder:uppercase placeholder:tracking-[0.4em] text-sm text-white tracking-[0.5em]"
+                  />
+                </div>
+                <button type="submit" disabled={isVerifying} className="text-[10px] uppercase tracking-[0.5em] text-white/40 hover:text-[#C5A059] transition-colors font-bold w-full">
+                  {isVerifying ? (isNavigating ? "Entering..." : "Verifying...") : "Enter the Silence"}
+                </button>
+              </form>
+              <div className="pt-4 flex justify-center">
+                <RequestAccessModal trigger={<button className="text-[9px] uppercase tracking-[0.3em] text-[#C5A059]/60 hover:text-[#C5A059] transition-colors border-b border-[#C5A059]/20 pb-1">Request Private Access</button>} />
+              </div>
+            </>
+          )}
         </motion.div>
       </motion.div>
     </div>
