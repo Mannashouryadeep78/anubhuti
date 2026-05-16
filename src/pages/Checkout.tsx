@@ -57,9 +57,7 @@ const Checkout = () => {
           setIsTypingAddress(false);
           setShipping(prev => ({
             ...prev,
-            address: data.display_name || prev.address,
-            city: addr.city || addr.town || addr.village || addr.state_district || prev.city,
-            zip: addr.postcode || prev.zip
+            address: data.display_name || prev.address
           }));
         }
       }
@@ -113,14 +111,7 @@ const Checkout = () => {
             const lng = parseFloat(data[0].lon);
             setMapCenter([lat, lng]);
             setMarkerPos([lat, lng]);
-            
-            const addr = data[0].address;
-            if (addr) {
-              setShipping(prev => ({
-                ...prev,
-                city: addr.city || addr.town || addr.village || addr.state_district || prev.city,
-                zip: addr.postcode || prev.zip
-              }));
+            if (data[0].address) {
               toast.success("Location mapped", { id: "geocode-success", duration: 2000 });
             }
             // Removed setIsTypingAddress(false) to prevent cancelling ongoing typing debounces
