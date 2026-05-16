@@ -46,6 +46,8 @@ const Checkout = () => {
   const [mapCenter, setMapCenter] = useState<[number, number]>([28.6139, 77.2090]);
   const [markerPos, setMarkerPos] = useState<[number, number] | null>(null);
   const [isTypingAddress, setIsTypingAddress] = useState(false);
+  // Ref to cancel any in-flight forward-geocode request when Locate Me is clicked
+  const geocodeAbortRef = React.useRef<AbortController | null>(null);
 
   const fetchAddressFromCoords = async (lat: number, lng: number) => {
     try {
@@ -67,6 +69,13 @@ const Checkout = () => {
   };
 
   const handleLocateMe = () => {
+    // Cancel any in-flight address-text search immediately
+    if (geocodeAbortRef.current) {
+      geocodeAbortRef.current.abort();
+      geocodeAbortRef.current = null;
+    }
+    setIsTypingAddress(false); // prevent debounce from re-firing
+
     toast.loading("Fetching location...", { id: "locate" });
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -101,9 +110,16 @@ const Checkout = () => {
   useEffect(() => {
     if (!isTypingAddress || !shipping.address || shipping.address.length < 5) return;
     
+    // Create a new AbortController for this request
+    const controller = new AbortController();
+    geocodeAbortRef.current = controller;
+
     const timeoutId = setTimeout(async () => {
       try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(shipping.address)}&limit=1&countrycodes=in&addressdetails=1`);
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(shipping.address)}&limit=1&countrycodes=in&addressdetails=1`,
+          { signal: controller.signal }
+        );
         if (response.ok) {
           const data = await response.json();
           if (data && data.length > 0) {
@@ -114,15 +130,20 @@ const Checkout = () => {
             if (data[0].address) {
               toast.success("Location mapped", { id: "geocode-success", duration: 2000 });
             }
-            // Removed setIsTypingAddress(false) to prevent cancelling ongoing typing debounces
           }
         }
-      } catch (err) {
-        console.warn("Forward geocoding failed", err);
+      } catch (err: any) {
+        // AbortError is expected when Locate Me cancels the request — don't warn
+        if (err.name !== 'AbortError') {
+          console.warn("Forward geocoding failed", err);
+        }
       }
     }, 1200); // Wait 1.2s after they stop typing
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort(); // also cancel if address changes before timeout fires
+    };
   }, [shipping.address, isTypingAddress]);
 
   const handlePayment = async () => {
