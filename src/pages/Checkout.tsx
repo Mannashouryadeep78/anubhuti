@@ -90,7 +90,7 @@ const Checkout = () => {
             toast.info("Showing default location (Mumbai).", { id: "locate" });
           }, 1500);
         },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
       );
     } else {
       toast.error("Geolocation is not supported.", { id: "locate" });
