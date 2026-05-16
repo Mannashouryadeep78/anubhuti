@@ -121,9 +121,9 @@ const Checkout = () => {
                 city: addr.city || addr.town || addr.village || addr.state_district || prev.city,
                 zip: addr.postcode || prev.zip
               }));
-              toast.success("Location mapped and analyzed");
+              toast.success("Location mapped", { id: "geocode-success", duration: 2000 });
             }
-            setIsTypingAddress(false);
+            // Removed setIsTypingAddress(false) to prevent cancelling ongoing typing debounces
           }
         }
       } catch (err) {
