@@ -46,7 +46,8 @@ const Checkout = () => {
   const [mapCenter, setMapCenter] = useState<[number, number]>([28.6139, 77.2090]);
   const [markerPos, setMarkerPos] = useState<[number, number] | null>(null);
   const [isTypingAddress, setIsTypingAddress] = useState(false);
-  // Ref to cancel any in-flight forward-geocode request when Locate Me is clicked
+  // Lock: prevents forward geocoding from overwriting a GPS-located result
+  const isLocatingRef = React.useRef(false);
   const geocodeAbortRef = React.useRef<AbortController | null>(null);
 
   const fetchAddressFromCoords = async (lat: number, lng: number) => {
@@ -69,12 +70,15 @@ const Checkout = () => {
   };
 
   const handleLocateMe = () => {
-    // Cancel any in-flight address-text search immediately
+    // Set lock BEFORE anything else — blocks forward geocoding from overwriting result
+    isLocatingRef.current = true;
+
+    // Cancel any pending address-text debounce and in-flight fetch
     if (geocodeAbortRef.current) {
       geocodeAbortRef.current.abort();
       geocodeAbortRef.current = null;
     }
-    setIsTypingAddress(false); // prevent debounce from re-firing
+    setIsTypingAddress(false);
 
     toast.loading("Fetching location...", { id: "locate" });
     if ("geolocation" in navigator) {
@@ -85,24 +89,26 @@ const Checkout = () => {
           setMarkerPos([latitude, longitude]);
           fetchAddressFromCoords(latitude, longitude);
           toast.success("Location found & address populated!", { id: "locate" });
+          isLocatingRef.current = false; // release lock after GPS is done
         },
         (error) => {
           console.warn("Geolocation failed:", error.message);
           toast.error("Location access denied. Using fallback.", { id: "locate" });
-          // Fallback for preview mode or blocked location
           setTimeout(() => {
-            const fallbackLat = 19.0760; // Mumbai
+            const fallbackLat = 19.0760;
             const fallbackLng = 72.8777;
             setMapCenter([fallbackLat, fallbackLng]);
             setMarkerPos([fallbackLat, fallbackLng]);
             fetchAddressFromCoords(fallbackLat, fallbackLng);
             toast.info("Showing default location (Mumbai).", { id: "locate" });
+            isLocatingRef.current = false; // release lock after fallback is done
           }, 1500);
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     } else {
       toast.error("Geolocation is not supported.", { id: "locate" });
+      isLocatingRef.current = false;
     }
   };
 
@@ -123,6 +129,8 @@ const Checkout = () => {
         if (response.ok) {
           const data = await response.json();
           if (data && data.length > 0) {
+            // If Locate Me is active, discard this result entirely — GPS wins
+            if (isLocatingRef.current) return;
             const lat = parseFloat(data[0].lat);
             const lng = parseFloat(data[0].lon);
             setMapCenter([lat, lng]);
