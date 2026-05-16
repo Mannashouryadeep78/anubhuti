@@ -105,7 +105,7 @@ const Checkout = () => {
     
     const timeoutId = setTimeout(async () => {
       try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(shipping.address)}&limit=1&countrycodes=in`);
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(shipping.address)}&limit=1&countrycodes=in&addressdetails=1`);
         if (response.ok) {
           const data = await response.json();
           if (data && data.length > 0) {
@@ -113,8 +113,16 @@ const Checkout = () => {
             const lng = parseFloat(data[0].lon);
             setMapCenter([lat, lng]);
             setMarkerPos([lat, lng]);
-            // Optional: you can update the city/zip here too if available in response,
-            // but for simplicity we just move the pin to match their typed address.
+            
+            const addr = data[0].address;
+            if (addr) {
+              setShipping(prev => ({
+                ...prev,
+                city: addr.city || addr.town || addr.village || addr.state_district || prev.city,
+                zip: addr.postcode || prev.zip
+              }));
+              toast.success("Location mapped and analyzed");
+            }
             setIsTypingAddress(false);
           }
         }
