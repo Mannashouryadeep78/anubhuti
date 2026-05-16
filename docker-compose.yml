@@ -293,97 +293,7 @@ services:
       <<: *hc-defaults
       test: ["CMD", "redis-cli", "-a", "$${REDIS_PASSWORD:-anubhuti_redis_secret}", "ping"]
 
-  # ═══════════════════════════════════════════════════════════════════════════
-  # POSTGRESQL — Users DB
-  # ═══════════════════════════════════════════════════════════════════════════
-  postgres-users:
-    <<: *service-defaults
-    image: postgres:16-alpine
-    container_name: anubhuti-postgres-users
-    environment:
-      POSTGRES_DB: anubhuti_users
-      POSTGRES_USER: $${POSTGRES_USER:-anubhuti}
-      POSTGRES_PASSWORD: $${POSTGRES_PASSWORD:-anubhuti_pg_secret}
-      # Performance tuning
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
-    command: >
-      postgres
-      -c max_connections=200
-      -c shared_buffers=256MB
-      -c effective_cache_size=1GB
-      -c work_mem=4MB
-      -c maintenance_work_mem=128MB
-      -c wal_buffers=16MB
-      -c checkpoint_completion_target=0.9
-      -c random_page_cost=1.1
-      -c effective_io_concurrency=200
-      -c log_min_duration_statement=500
-    volumes:
-      - postgres-users-data:/var/lib/postgresql/data
-      - ./backend/user-service/migrations:/docker-entrypoint-initdb.d:ro
-    ports:
-      - "5432:5432"
-    healthcheck:
-      <<: *hc-defaults
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-anubhuti} -d anubhuti_users"]
 
-  # ═══════════════════════════════════════════════════════════════════════════
-  # POSTGRESQL — Orders DB
-  # ═══════════════════════════════════════════════════════════════════════════
-  postgres-orders:
-    <<: *service-defaults
-    image: postgres:16-alpine
-    container_name: anubhuti-postgres-orders
-    environment:
-      POSTGRES_DB: anubhuti_orders
-      POSTGRES_USER: $${POSTGRES_USER:-anubhuti}
-      POSTGRES_PASSWORD: $${POSTGRES_PASSWORD:-anubhuti_pg_secret}
-    command: >
-      postgres
-      -c max_connections=200
-      -c shared_buffers=256MB
-      -c effective_cache_size=1GB
-      -c work_mem=4MB
-      -c wal_buffers=16MB
-      -c checkpoint_completion_target=0.9
-      -c log_min_duration_statement=500
-    volumes:
-      - postgres-orders-data:/var/lib/postgresql/data
-      - ./backend/order-service/migrations:/docker-entrypoint-initdb.d:ro
-    ports:
-      - "5433:5432"
-    healthcheck:
-      <<: *hc-defaults
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-anubhuti} -d anubhuti_orders"]
-
-  # ═══════════════════════════════════════════════════════════════════════════
-  # POSTGRESQL — Inventory DB
-  # ═══════════════════════════════════════════════════════════════════════════
-  postgres-inventory:
-    <<: *service-defaults
-    image: postgres:16-alpine
-    container_name: anubhuti-postgres-inventory
-    environment:
-      POSTGRES_DB: anubhuti_inventory
-      POSTGRES_USER: $${POSTGRES_USER:-anubhuti}
-      POSTGRES_PASSWORD: $${POSTGRES_PASSWORD:-anubhuti_pg_secret}
-    command: >
-      postgres
-      -c max_connections=200
-      -c shared_buffers=256MB
-      -c effective_cache_size=1GB
-      -c work_mem=4MB
-      -c wal_buffers=16MB
-      -c checkpoint_completion_target=0.9
-      -c log_min_duration_statement=500
-    volumes:
-      - postgres-inventory-data:/var/lib/postgresql/data
-      - ./backend/inventory-service/migrations:/docker-entrypoint-initdb.d:ro
-    ports:
-      - "5434:5432"
-    healthcheck:
-      <<: *hc-defaults
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-anubhuti} -d anubhuti_inventory"]
 
   # ═══════════════════════════════════════════════════════════════════════════
   # API GATEWAY — JWT auth + rate limiting + routing
@@ -435,14 +345,12 @@ services:
       target: production
     container_name: anubhuti-user-service
     depends_on:
-      postgres-users:
-        condition: service_healthy
       redis:
         condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: postgresql://$${POSTGRES_USER:-anubhuti}:$${POSTGRES_PASSWORD:-anubhuti_pg_secret}@postgres-users:5432/anubhuti_users
+      DATABASE_URL: $${SUPABASE_DATABASE_URL}
       REDIS_URL: redis://:$${REDIS_PASSWORD:-anubhuti_redis_secret}@redis:6379
       JWT_SECRET: $${JWT_SECRET:-change_this_in_production_min_32_chars}
       JWT_EXPIRES_IN: 15m
@@ -477,8 +385,6 @@ services:
       target: production
     container_name: anubhuti-order-service
     depends_on:
-      postgres-orders:
-        condition: service_healthy
       redis:
         condition: service_healthy
       kafka-broker-1:
@@ -486,7 +392,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3002
-      DATABASE_URL: postgresql://$${POSTGRES_USER:-anubhuti}:$${POSTGRES_PASSWORD:-anubhuti_pg_secret}@postgres-orders:5432/anubhuti_orders
+      DATABASE_URL: $${SUPABASE_DATABASE_URL}
       REDIS_URL: redis://:$${REDIS_PASSWORD:-anubhuti_redis_secret}@redis:6379
       KAFKA_BROKERS: kafka-broker-1:29092,kafka-broker-2:29093,kafka-broker-3:29094
       KAFKA_CLIENT_ID: order-service
@@ -521,8 +427,6 @@ services:
       target: production
     container_name: anubhuti-inventory-service
     depends_on:
-      postgres-inventory:
-        condition: service_healthy
       redis:
         condition: service_healthy
       kafka-broker-1:
@@ -530,7 +434,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3003
-      DATABASE_URL: postgresql://$${POSTGRES_USER:-anubhuti}:$${POSTGRES_PASSWORD:-anubhuti_pg_secret}@postgres-inventory:5432/anubhuti_inventory
+      DATABASE_URL: $${SUPABASE_DATABASE_URL}
       REDIS_URL: redis://:$${REDIS_PASSWORD:-anubhuti_redis_secret}@redis:6379
       KAFKA_BROKERS: kafka-broker-1:29092,kafka-broker-2:29093,kafka-broker-3:29094
       KAFKA_CLIENT_ID: inventory-service
@@ -630,14 +534,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      postgres-inventory:
-        condition: service_healthy
     environment:
       NODE_ENV: production
       KAFKA_BROKERS: kafka-broker-1:29092,kafka-broker-2:29093,kafka-broker-3:29094
       KAFKA_CLIENT_ID: inventory-worker
       KAFKA_GROUP_ID: inventory-worker-group
-      DATABASE_URL: postgresql://$${POSTGRES_USER:-anubhuti}:$${POSTGRES_PASSWORD:-anubhuti_pg_secret}@postgres-inventory:5432/anubhuti_inventory
+      DATABASE_URL: $${SUPABASE_DATABASE_URL}
       REDIS_URL: redis://:$${REDIS_PASSWORD:-anubhuti_redis_secret}@redis:6379
       LOG_LEVEL: info
     deploy:

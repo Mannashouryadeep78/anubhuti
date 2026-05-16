@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { RefreshCw, Server, MapPin, PackageCheck, Truck, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 const OrderHistory = () => {
   const [orders, setOrders] = useState<any[]>([]);
@@ -35,6 +36,36 @@ const OrderHistory = () => {
 
   useEffect(() => {
     fetchOrders();
+
+    const userId = localStorage.getItem('anubhuti_user_id');
+    if (!userId) return;
+
+    // Subscribe to realtime updates for this user's orders
+    const channel = supabase
+      .channel('orders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          // Re-fetch to ensure we get the full updated timeline (order_status_history)
+          fetchOrders();
+          if (payload.eventType === 'UPDATE') {
+             toast.info(`Order status updated to: ${payload.new.status}`, {
+               style: { background: '#0A0A0A', color: '#C5A059', border: '1px solid rgba(197, 160, 89, 0.2)' }
+             });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const getStatusBadgeColor = (status: string) => {
